@@ -59,8 +59,8 @@ lastYr_date <- format(as.Date(gsub(current_year, last_year, current_date)), "%b-
 
 # File names
 fls <- c("Cum_Inf_Risk_Total.tif", "Cum_Inf_Risk_3day.tif", "Cum_Inf_Risk_4day.tif")
-outdir_current <- paste0("https://github.com/bbarker505/BOXB-webapp/blob/main/rasters/ref_6-11/", current_year)
-outdir_lastYr <- paste0("https://github.com/bbarker505/BOXB-webapp/blob/main/rasters/ref_6-11/", last_year)
+outdir_current <- paste0("https://github.com/bbarker505/BOXB-webapp/raw/main/rasters/ref_6-11/", current_year)
+outdir_lastYr <- paste0("https://github.com/bbarker505/BOXB-webapp/raw/main/rasters/ref_6-11/", last_year)
 
 ## Function to import outputs (rasters)
 # Raster with total cumulative DDs has multiple layers so need only last layer, 
@@ -752,4 +752,3 @@ server <- function(input, output) {
 
 # Run app ----
 shinyApp(ui = ui, server = server)
-
