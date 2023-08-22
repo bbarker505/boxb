@@ -101,20 +101,20 @@ FactorizeRast <- function(r, type) {
     vals <-  sort(unique(values(r, na.rm = TRUE)))
     lvls <- data.frame(id = vals, risk = vals) %>%
       mutate(risk = case_when(risk <= 5 ~ "0-5", 
-                               risk > 5 & risk <= 10 ~ "6-10", 
-                               risk > 10 & risk <= 15 ~ "11-15", 
-                               risk > 15 & risk <= 20 ~ "16-20",
-                               risk > 20 & risk <= 25 ~ "21-25",
-                               risk > 25 & risk <= 30 ~ "26-30",
-                               risk > 30 & risk <= 35 ~ "31-35",
-                               risk > 35 & risk <= 40 ~ "36-40",
-                               risk > 40 & risk <= 45 ~ "41-45",
-                               risk > 45 & risk <= 50 ~ "46-50",
-                               risk > 50 ~ ">50"))
+                              risk > 5 & risk <= 10 ~ "6-10", 
+                              risk > 10 & risk <= 15 ~ "11-15", 
+                              risk > 15 & risk <= 20 ~ "16-20",
+                              risk > 20 & risk <= 25 ~ "21-25",
+                              risk > 25 & risk <= 30 ~ "26-30",
+                              risk > 30 & risk <= 35 ~ "31-35",
+                              risk > 35 & risk <= 40 ~ "36-40",
+                              risk > 40 & risk <= 45 ~ "41-45",
+                              risk > 45 & risk <= 50 ~ "46-50",
+                              risk > 50 ~ ">50"))
     # Factorize raster
     levels(r) <- lvls
   }
-
+  
   return(r)
 }
 
@@ -128,8 +128,8 @@ RiskMap <- function(input, raster_current, raster_lastYr, title_current, title_l
   # small and can't figure out an easy way to adjust font size.
   #### * Current year map ####
   map_current <- leaflet(height = 500, #width = map_width(),
-                         options = leafletOptions(
-                           zoomControl = FALSE, minZoom = 6)) %>% 
+                         options = leafletOptions(attributionControl = FALSE,
+                                                  zoomControl = FALSE, minZoom = 6)) %>% 
     
     # Add OpenStreetMap layer
     addProviderTiles(providers$CartoDB.Voyager) %>%
@@ -161,12 +161,13 @@ RiskMap <- function(input, raster_current, raster_lastYr, title_current, title_l
     }") %>%
     
     # Map title
-    addControl(title_current, position = "bottomright", className = "map-title")
+    addControl(title_current, position = "bottomleft", className = "map-title")
   
   #### * Last year map ####
   # Leaflet map for same date last year
   map_lastYr <- leaflet(height = 500, width = map_width(),
-                        options = leafletOptions(zoomControl = FALSE, minZoom = 6)) %>% 
+                        options = leafletOptions(attributionControl = FALSE,
+                                                 zoomControl = FALSE, minZoom = 6)) %>% 
     
     # Add OpenStreetMap layer
     addProviderTiles(providers$CartoDB.Voyager) %>%
@@ -200,7 +201,7 @@ RiskMap <- function(input, raster_current, raster_lastYr, title_current, title_l
     }")  %>%
     
     # Map title
-    addControl(title_lastYr, position = "bottomright", className = "map-title")
+    addControl(title_lastYr, position = "bottomleft", className = "map-title")
   
   #### * Final map add-ons ####
   ## Add legend
@@ -260,9 +261,6 @@ RiskMap <- function(input, raster_current, raster_lastYr, title_current, title_l
 
 # File names
 fls <- c("Cum_Inf_Risk_Total.tif", "Cum_Inf_Risk_3day.tif", "Cum_Inf_Risk_4day.tif")
-# outdir_current <- paste0("https://github.com/bbarker505/BOXB-webapp/raw/main/rasters/ref_6-11/", current_year)
-# outdir_lastYr <- paste0("https://github.com/bbarker505/BOXB-webapp/raw/main/rasters/ref_6-11/", last_year)
-
 outdir_current <- paste0("./rasters/ref_6-11/", current_year)
 outdir_lastYr <- paste0("./rasters/ref_6-11/", last_year)
 
@@ -284,6 +282,7 @@ rasts_lastYr <- map(
 # border-radius makes rounded edges
 tag.map.title <- tags$style(HTML("
   .leaflet-control.map-title { 
+    width: 85px;
     padding-left: 3px; 
     padding-right: 3px; 
     padding-top: 2px; 
@@ -293,7 +292,7 @@ tag.map.title <- tags$style(HTML("
     font-size: 14px;
     font-weight: bold;
     text-align: center;
-    color: black;
+    color: rgb(51, 51, 51);
   }
 "))
 
@@ -355,7 +354,7 @@ ui <- fluidPage(
             color = "light-blue",
             fluidRow(
               style = "font-size:19px;",
-               column(width = 10, 
+              column(width = 10, 
                      offset = 0, 
                      p("The boxwood blight infection risk mapping tool uses gridded climate data to calculate the risk of boxwood being infected by boxwood blight in western Oregon and Washington. Three day and four day forecasts of infection risk are available, as well as a map of cumulative risk (Jan 1 to date of four day forecast). Climate data are derived from the ", a(href = "https://www.prism.oregonstate.edu", "PRISM", target = "_blank"), "database at a 800 m", tags$sup(2, .noWS = "before"), " resolution. Presently models are run only for areas west of the Cascades (approximately west of \u2013120.5\u00B0W). Please see a", a(href = "https://www.prism.oregonstate.edu", "tutorial", target = "_blank"), "for details on tool use and map interpretation. Expand the Introduction below to learn more about boxwood blight and risk models for this disease."))))),
       
@@ -372,11 +371,11 @@ ui <- fluidPage(
             fluidRow(
               style = "font-size:19px;",
               column(width = 2, offset = 0, align = "center", style='padding:0px;font-size:14px;',
-                     img(src = "https://raw.githubusercontent.com/bbarker505/boxb-ddrp/main/Images/boxb-infected-shrubs.png", width = "160px"),
-                     img(src = "https://raw.githubusercontent.com/bbarker505/boxb-ddrp/main/Images/boxb-infected-leaves.png", width = "160px" ),
-                     img(src = "https://raw.githubusercontent.com/bbarker505/boxb-ddrp/main/Images/boxb-infected-stems.png", width = "160px")),
+                     img(src = "https://raw.githubusercontent.com/bbarker505/BOXB-webapp/main/images/boxb-infected-shrubs.png", width = "160px"),
+                     img(src = "https://raw.githubusercontent.com/bbarker505/BOXB-webapp/main/images/boxb-infected-leaves.png", width = "160px" ),
+                     img(src = "https://raw.githubusercontent.com/bbarker505/BOXB-webapp/main/images/boxb-infected-stems.png", width = "160px")),
               column(width = 10, offset = 0, 
-                       p(strong("Background: "), "Boxwood blight caused by the fungus ", em("Calonectria pseudonaviculata"), " can result in defoliation, decline, and death of susceptible varieties of boxwood, including most varieties of ", em("Buxus sempervirens"), " such as \u0022Suffruticosa\u0022  (English boxwood) and \u0022Justin Brouwers\u0022. Images show diagnostic symptoms of boxwood blight including defoliation ", strong("(top)"), ", leaf spots ", strong("(middle)"), " and black streaks on stems ", strong("(bottom)"), "(courtesy of Chuan Hong). The fungus has been detected at several locations (mostly in nurseries) in at least six different counties in Oregon and is thought to be established in some areas. Previous", a(href = "https://doi.org/10.3390/biology11060849", "research", target = "_blank"), "indicates that western Oregon and Washington have highly suitable climates for establishment of", em("C. pseudonaviculata"),  ". Tools are therefore needed to inform growers and gardeners about when environmental conditions are conducive to boxwood blight infection and establishment."),
+                     p(strong("Background: "), "Boxwood blight caused by the fungus ", em("Calonectria pseudonaviculata"), " can result in defoliation, decline, and death of susceptible varieties of boxwood, including most varieties of ", em("Buxus sempervirens"), " such as \u0022Suffruticosa\u0022  (English boxwood) and \u0022Justin Brouwers\u0022. Images show diagnostic symptoms of boxwood blight including defoliation ", strong("(top)"), ", leaf spots ", strong("(middle)"), " and black streaks on stems ", strong("(bottom)"), "(courtesy of Chuan Hong). The fungus has been detected at several locations (mostly in nurseries) in at least six different counties in Oregon and is thought to be established in some areas. Previous", a(href = "https://doi.org/10.3390/biology11060849", "research", target = "_blank"), "indicates that western Oregon and Washington have highly suitable climates for establishment of", em("C. pseudonaviculata"),  ". Tools are therefore needed to inform growers and gardeners about when environmental conditions are conducive to boxwood blight infection and establishment."),
                      p("Generally, it should be very humid or raining and at moderately warm temperatures (60-85 \260F) for a couple days for boxwood blight infection risk to be high. An inoculum source must be present nearby for infection to occur. Overhead irrigation facilitates outbreaks because it creates higher relative humidity and exposes leaf surfaces to longer periods of leaf wetness. For more information on preventing and managing boxwood blight, see the ", a(href = " https://pnwhandbooks.org/plantdisease/host-disease/boxwood-buxus-spp-boxwood-blight", "Pacific Northwest Pest Management Handbook", target = "_blank"), " and a ", a(href = " https://www.pubs.ext.vt.edu/content/dam/pubs_ext_vt_edu/PPWS/PPWS-29/PPWS-29-pdf.pdf", "publication", target = "_blank"),"by Virginia Cooperative Extension."),
                      p(strong("Tool description: "), "The risk mapping tool differs from the ", a(href = "https://uspest.org/risk/boxwood_app", "boxwood blight model app"), "and the", a(href = "https://uspest.org/risk/boxwood_map", "synoptic map-view of risk"), " available at", a(href = "https://uspest.org", "USPest.org"), "because it uses daily gridded climate data instead of hourly climate data from single weather stations. Spatialized predictions allow you to visualize risk for all areas in western Oregon and Washington, from a single neighborhood to an entire city or region. The spatial model is run using a modified version of a platform known as ", a(href = "https://uspest.org/CAPS/", "DDRP"), ", which provides real-time forecasts of phenology and establishment risk of 16 species of invasive insects in the contiguous US. It will likely need to fine-tuned as more infection incidence data become available."),
                      p(strong("Disclaimer: "), "The index is intended to inform your decisions about management actions, such as choice and timing of control measures and intensity of scouting. It should supplement, not replace, the other factors you consider in making these decisions. Use at your own risk."))))),
@@ -385,79 +384,79 @@ ui <- fluidPage(
       fluidRow(
         style = "font-size:19px;",
         box(title = strong("Risk Map", style = "font-size:22px"),
-          status = "primary",
-          solidHeader = TRUE,
-          collapsible = FALSE,
-          width = 12,
-          color = "light-blue",
-          ## Risk map selection
-          fluidRow(style = "font-size:19px;",
-                   column(width = 1),
-                   column(
-                     width = 3,
-                     offset = 0,
-                     radioButtons("risk",
-                       label = tags$span("Select risk map", 
-                                         bsButton("info_maptype", 
-                                                  label = "", 
-                                                  icon = icon("info"), 
-                                                  style = "info", 
-                                                  size = "extra-small")),
-                       choices = c("Three Day", "Four Day", "Cumulative (Total)"),
-                       selected = "Three Day"),
-                # Popover info box
-                shinyBS::bsPopover(
-                  id = "info_maptype",
-                  title = "Information",
-                  content = paste0("Three Day and Four Day risk maps show forecasts of infection risk for ", DateFormat(current_date + 3), " and ",  DateFormat(current_date + 4), ", respectively. The Cumulative (Total) risk map shows predictions of total risk accumulation between the start of the year and ", DateFormat(current_date + 4), ". Hover the mouse over a location on the map to see its risk value."),
-                  placement = "right",
-                  trigger = "hover",
-                  options = list(container = "body"))),
-              ## Address selection and entry
-              column(
-                width = 3,
-                offset = 0,
-                checkboxInput("address_checkbox",
-                              value = FALSE,
-                              label = tags$span("Locate an address",
-                                                bsButton("info_address",
-                                                         label = "",
-                                                         icon = icon("info"),
-                                                         style = "info",
-                                                         size = "extra-small"))),
-                
-                # Popover info box
-                shinyBS::bsPopover(
-                  id = "info_address",
-                  title = "Information",
-                  content = "Marks, zooms to, and extracts risk information for a specified location. After checking the box, enter a city name, address, or place in the white box and press Submit.",
-                  placement = "right",
-                  trigger = "hover",
-                  options = list(container = "body")),
-                # Conditional panel of address box is selected
-                conditionalPanel(
-                  condition = "input.address_checkbox == 1",
-                  textInput("address", "Enter an address, city, or place",
-                            value = ""),
-                  actionButton("address_submit", "Submit"))),
-              column(
-                width = 3, 
-                checkboxInput("lastYr_checkbox",
-                              value = FALSE,
-                              label = tags$span("Compare to last year",
-                                                bsButton("info_lastYr",
-                                                         label = "",
-                                                         icon = icon("info"),
-                                                         style = "info",
-                                                         size = "extra-small"))),
-                shinyBS::bsPopover(
-                  id = "info_lastYr",
-                  title = "Information",
-                  content = "Produces a second map that shows risk for the same time last year. This may provide insight into how climate differences between years affects infection risk. The two risk maps are synced, so panning and zooming one map will do the same for the other.",
-                  placement = "right",
-                  trigger = "hover",
-                  options = list(container = "body"))),
-              )),
+            status = "primary",
+            solidHeader = TRUE,
+            collapsible = FALSE,
+            width = 12,
+            color = "light-blue",
+            ## Risk map selection
+            fluidRow(style = "font-size:19px;",
+                     column(width = 1),
+                     column(
+                       width = 3,
+                       offset = 0,
+                       radioButtons("risk",
+                                    label = tags$span("Select risk map", 
+                                                      bsButton("info_maptype", 
+                                                               label = "", 
+                                                               icon = icon("info"), 
+                                                               style = "info", 
+                                                               size = "extra-small")),
+                                    choices = c("Three Day", "Four Day", "Cumulative (Total)"),
+                                    selected = "Three Day"),
+                       # Popover info box
+                       shinyBS::bsPopover(
+                         id = "info_maptype",
+                         title = "Select risk map",
+                         content = paste0("Three Day and Four Day risk maps show forecasts of infection risk for ", DateFormat(current_date + 3), " and ",  DateFormat(current_date + 4), ", respectively. The Cumulative (Total) risk map shows predictions of total risk accumulation between the start of the year and ", DateFormat(current_date + 4), ". Hover the mouse over a location on the map to see its risk value."),
+                         placement = "right",
+                         trigger = "hover",
+                         options = list(container = "body"))),
+                     ## Address selection and entry
+                     column(
+                       width = 3,
+                       offset = 0,
+                       checkboxInput("address_checkbox",
+                                     value = FALSE,
+                                     label = tags$span("Locate an address",
+                                                       bsButton("info_address",
+                                                                label = "",
+                                                                icon = icon("info"),
+                                                                style = "info",
+                                                                size = "extra-small"))),
+                       
+                       # Popover info box
+                       shinyBS::bsPopover(
+                         id = "info_address",
+                         title = "Locate an address",
+                         content = "Marks, zooms to, and extracts risk information for a specified location. After checking the box, enter a city name, address, or place in the white box and press Submit.",
+                         placement = "right",
+                         trigger = "hover",
+                         options = list(container = "body")),
+                       # Conditional panel of address box is selected
+                       conditionalPanel(
+                         condition = "input.address_checkbox == 1",
+                         textInput("address", "Enter an address, city, or place",
+                                   value = ""),
+                         actionButton("address_submit", "Submit"))),
+                     column(
+                       width = 3, 
+                       checkboxInput("lastYr_checkbox",
+                                     value = FALSE,
+                                     label = tags$span("Compare to last year",
+                                                       bsButton("info_lastYr",
+                                                                label = "",
+                                                                icon = icon("info"),
+                                                                style = "info",
+                                                                size = "extra-small"))),
+                       shinyBS::bsPopover(
+                         id = "info_lastYr",
+                         title = "Compare to last year",
+                         content = "Produces a second map that shows risk for the same time last year. This may provide insight into how climate differences between years affects infection risk. The two risk maps are synced, so panning and zooming one map will do the same for the other.",
+                         placement = "right",
+                         trigger = "hover",
+                         options = list(container = "body"))),
+            )),
         
         # Error message
         #uiOutput("address_error"),
@@ -488,17 +487,17 @@ ui <- fluidPage(
                        style = "font-size:19px;",
                        column(width = 12, 
                               p("Creation of this app was funded by an Oregon Department of Agriculture Nursery Research Grant number ODA-4310-A. Boxwood blight risk modeling work was funded by the US Farm Bill FY17 and sponsored by the USDA APHIS PPQ agreement number 20-8130-0282-CA, and by National Institute of Food and Agriculture Crop Protection and Pest Management Extension Implementation Program grant number 2021-70006-35581. Many collaborators from OSU, USDA ARS, Virginia Tech, and North Carolina State University helped improve the model."))))),
-      
-      # Logos
-      fluidRow(
-        column(width = 3, align = "center", offset = 0,
-               img(src = "https://raw.githubusercontent.com/bbarker505/boxb-ddrp/main/Images/OIPMC.png", width = "75%")),
-        column(width = 3, align = "center", offset = 0,
-               img(src = "https://raw.githubusercontent.com/bbarker505/boxb-ddrp/main/Images/Oregon-Department-of-Agriculture-logo.png", width = "75%")),
-        column(width = 3, align = "center", offset = 0,
-               img(src = "https://raw.githubusercontent.com/bbarker505/boxb-ddrp/main/Images/PRISM.png", width = "65%")),
-        column(width = 3, align = "center", offset = 0,
-               img(src = "https://raw.githubusercontent.com/bbarker505/boxb-ddrp/main/Images/usda-logo_original.png", width = "45%")))))))
+        
+        # Logos
+        fluidRow(
+          column(width = 3, align = "center", offset = 0,
+                 img(src = "https://raw.githubusercontent.com/bbarker505/BOXB-webapp/main/images/OIPMC.png", width = "75%", style = "max-width: 200px;")),
+          column(width = 3, align = "center", offset = 0,
+                 img(src = "https://raw.githubusercontent.com/bbarker505/BOXB-webapp/main/images/Oregon-Department-of-Agriculture-logo.png", width = "75%", style = "max-width: 200px;")),
+          column(width = 3, align = "center", offset = 0,
+                 img(src = "https://raw.githubusercontent.com/bbarker505/BOXB-webapp/main/images/PRISM.png", width = "55%", style = "max-width: 200px;")),
+          column(width = 3, align = "center", offset = 0,
+                 img(src = "https://raw.githubusercontent.com/bbarker505/BOXB-webapp/main/images/usda-logo_original.png", width = "45%", style = "max-width: 200px;max-height: 100px;")))))))
 
 # Server ----
 server <- function(input, output) {
@@ -557,15 +556,15 @@ server <- function(input, output) {
                             "Three Day" = rasts_lastYr[[2]],
                             "Four Day" = rasts_lastYr[[3]],
                             "Cumulative (Total)" = rasts_lastYr[[1]])
-
+    
     #### * Map titles with dates ####
     
     # Dates for current year
     title_current <- switch(
       input$risk, 
-      "Three Day" = paste(DateFormat(current_date), " \u2013 ", DateFormat(current_date + 3)),
-      "Four Day" = paste(DateFormat(current_date), " \u2013 ", DateFormat(current_date + 4)),
-      "Cumulative (Total)" = paste0("1/1/", current_year, " \u2013 ", DateFormat(current_date + 4)))
+      "Three Day" = paste(DateFormat(current_date), " \u2013", DateFormat(current_date + 3)),
+      "Four Day" = paste(DateFormat(current_date), " \u2013", DateFormat(current_date + 4)),
+      "Cumulative (Total)" = paste0("1/1/", current_year, " \u2013", DateFormat(current_date + 4)))
     title_current <- tags$div(tag.map.title, HTML(title_current))
     
     # Dates for last year
@@ -596,7 +595,7 @@ server <- function(input, output) {
     max_rast <- FactorizeRast(max_rast, lgd_title)
     raster_current <- FactorizeRast(raster_current, lgd_title)
     raster_lastYr <- FactorizeRast(raster_lastYr, lgd_title)
-      
+    
     # Need to know number of unique values for color ramp
     #ncols <- nrow(unique(values(max_rast, na.rm = TRUE)))
     ncols <-  length(unique(levels(max_rast)[[1]]$risk))
@@ -609,7 +608,7 @@ server <- function(input, output) {
     } else {
       pal_risk <- colorRampPalette(c("#009405", "#ffff00", "#da9101", "#c30010"))(11)
     }
-      
+    
     # Retail needed levels only
     pal_risk <- pal_risk[1:ncols]
     
@@ -627,7 +626,7 @@ server <- function(input, output) {
       RiskMap(input, raster_current, raster_lastYr, title_current, title_lastYr, 
               lgd_title, pal_risk_current, pal_risk_lastYr, unique_vals_current, 
               unique_vals_lastYr, map_width, address_submit = 0, coords = NA) 
-      })
+    })
     
     # Below updates maps each time a new address (location) is submitted
     # Not sure else how to do this besides having a nested "observeEvent"
@@ -642,48 +641,48 @@ server <- function(input, output) {
                 lgd_title, pal_risk_current, pal_risk_lastYr, unique_vals_current, unique_vals_lastYr,
                 map_width, address_submit = 1, coords = coords) 
       })
+      
+      # Add circle markers for geocoded location if coordinates are not NA
+      output$coords_value_current <- renderText({
         
-        # Add circle markers for geocoded location if coordinates are not NA
-        output$coords_value_current <- renderText({
+        if (input$address != "") {
           
-          if (input$address != "") {
-            
-            xy <- data.frame(x = coords()$long, y = coords()$lat)
-            rast_val <- terra::extract(raster_current, xy)[1,2]
-            
-            if (!is.na(rast_val)) {
-              paste(input$risk, "Risk at Location:", rast_val)
-            } else {
-              "No risk forecast for this location"
-            }
-            
-          }
-        })
-        
-        # Last year risk map
-        output$coords_value_lastYr <- renderText({
+          xy <- data.frame(x = coords()$long, y = coords()$lat)
+          rast_val <- terra::extract(raster_current, xy)[1,2]
           
-          if(input$address != "" & input$lastYr_checkbox == 1) {
-            
-            xy <- data.frame(x = coords()$long, y = coords()$lat)
-            rast_val <- terra::extract(raster_lastYr, xy)[1,2]
-            
-            if (!is.na(rast_val)) {
-              
-              paste(input$risk, "Risk at Location:", rast_val)
-              
-            } else {
-              "No risk forecast for this location - please try again"
-            }
-            
+          if (!is.na(rast_val)) {
+            paste(input$risk, "Risk at Location:", rast_val)
+          } else {
+            "No risk forecast for this location"
           }
           
-        })
+        }
+      })
+      
+      # Last year risk map
+      output$coords_value_lastYr <- renderText({
+        
+        if(input$address != "" & input$lastYr_checkbox == 1) {
+          
+          xy <- data.frame(x = coords()$long, y = coords()$lat)
+          rast_val <- terra::extract(raster_lastYr, xy)[1,2]
+          
+          if (!is.na(rast_val)) {
+            
+            paste(input$risk, "Risk at Location:", rast_val)
+            
+          } else {
+            "No risk forecast for this location - please try again"
+          }
+          
+        }
         
       })
       
     })
-
+    
+  })
+  
 }
 
 # Run app ----
