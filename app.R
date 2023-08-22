@@ -33,8 +33,8 @@ library(htmlwidgets)
 # Current dates and year
 #current_date <- Sys.Date()
 #current_year <- as.numeric(format(current_date, format = "%Y"))
-current_year <- 2023
-current_date <- as.Date(paste0("Jun-8-", current_year), format = "%b-%d-%Y") 
+current_year <- 2021
+current_date <- as.Date(paste0("Jun-11-", current_year), format = "%b-%d-%Y") 
 last_year <- current_year - 1
 lastYr_date <- as.Date(gsub(current_year, last_year, current_date))
 
@@ -258,8 +258,8 @@ RiskMap <- function(input, raster_current, raster_lastYr, title_current, title_l
 
 # File names
 fls <- c("Cum_Inf_Risk_Total.tif", "Cum_Inf_Risk_3day.tif", "Cum_Inf_Risk_4day.tif")
-outdir_current <- paste0("https://github.com/bbarker505/BOXB-webapp/raw/main/rasters/ref_6-8/", current_year)
-outdir_lastYr <- paste0("https://github.com/bbarker505/BOXB-webapp/raw/main/rasters/ref_6-8/", last_year)
+outdir_current <- paste0("https://github.com/bbarker505/BOXB-webapp/raw/main/rasters/ref_6-11/", current_year)
+outdir_lastYr <- paste0("https://github.com/bbarker505/BOXB-webapp/raw/main/rasters/ref_6-11/", last_year)
 
 # Model outputs for current run 
 rasts_current <- map(
