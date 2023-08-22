@@ -26,6 +26,8 @@ library(htmlwidgets)
 # TO DO: "“addImageQuery” only allows for raster and stars objects. Hopefully
 # this will be resolved so can avoid converting spatRaster to raster.
 
+Sys.setenv(MAPQUEST_API_KEY = "5vjLXIpEjMHpANFr4Ok2BNxpuQPrsGQP")
+
 ## Setup ----
 
 #### * Dates 
@@ -258,8 +260,11 @@ RiskMap <- function(input, raster_current, raster_lastYr, title_current, title_l
 
 # File names
 fls <- c("Cum_Inf_Risk_Total.tif", "Cum_Inf_Risk_3day.tif", "Cum_Inf_Risk_4day.tif")
-outdir_current <- paste0("https://github.com/bbarker505/BOXB-webapp/raw/main/rasters/ref_6-11/", current_year)
-outdir_lastYr <- paste0("https://github.com/bbarker505/BOXB-webapp/raw/main/rasters/ref_6-11/", last_year)
+# outdir_current <- paste0("https://github.com/bbarker505/BOXB-webapp/raw/main/rasters/ref_6-11/", current_year)
+# outdir_lastYr <- paste0("https://github.com/bbarker505/BOXB-webapp/raw/main/rasters/ref_6-11/", last_year)
+
+outdir_current <- paste0("./rasters/ref_6-11/", current_year)
+outdir_lastYr <- paste0("./rasters/ref_6-11/", last_year)
 
 # Model outputs for current run 
 rasts_current <- map(
@@ -526,7 +531,7 @@ server <- function(input, output) {
   coords <- eventReactive(input$address_submit, {
     if (input$address != "") { 
       tribble(~addr, input$address) %>%
-        geocode(addr)  
+        geocode(addr, method = "mapquest")  
     }
   })
   
