@@ -1,0 +1,43 @@
+### Metadata ###
+
+Run date and time: 08/01/2023 15:36
+
+### Model Species Parameters ###
+ Species Abbrev: BOXB 
+ Full Name: Boxwood_blight 
+ Pest of: boxwood 
+ Overwintering Stage: OA 
+ Degree-day calculation method: boxblt
+ 
+ Developmental threshold temperatures 
+ Egg Lower Devel Threshold: 9 
+ Egg Upper Devel Threshold: 29 
+ Larvae Lower Devel Threshold: 9 
+ Larvae Upper Devel Threshold: 29 
+ Pupae Lower Devel Threshold: 9 
+ Pupae Upper Devel Threshold: 29 
+ Adult Lower Devel Threshold: 9 
+ Adult Upper Devel Threshold: 29
+
+ Stage durations in degree-days (DDs) 
+ Egg DDs: 150 
+ Larvae DDs 150 
+ Pupae DDs: 150 
+ Adult DDs: 150
+
+ Reference date for 3 and 4 day risk maps: 06/08/2022
+
+### Model Input Parameters ###
+ Start Year: 2022 
+ Weather data for forecasts: PRISM_800m 
+ Start day-of-year: 1 
+ End day-of-year: 170 
+ Region: W_ORWA 
+ Climate stress exclusion maps: 0 
+ Pest Event Maps: 0 
+ Adult Event Maps: 0 
+ Egg Event Maps: 0 
+ Larvae Event Maps: 0 
+ Pupae Event Maps: 0 
+ Output_Dir: BOXB_060822 
+ Output option: 1
