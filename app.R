@@ -1,5 +1,9 @@
+##### Boxwood blight risk mapping app for western Oregon and Washington #####
+# Purpose: display outputs forecasts of 3-day, 4-day, and cumulative  risk 
 # Designed to run from day 1 of year through 4 days past current date
 # For example, if today is 8/1/23, then runs for 1/1/23 to 8/5/23
+
+# Packages
 library(tidyverse) # Data wrangling/manipulation
 library(terra) # Import model outputs / work with rasters
 library(raster) # TO DO: hopefully can remove this
@@ -19,7 +23,6 @@ library(shinydashboard)
 library(shinyBS) # Info tabs next to risk map menu items
 library(rsconnect) # Share app via shinapp.io
 library(bslib)
-#library(shinybrowser) # Use to detect between tablet/phone and desktop??
 library(fresh) # Color theme for web app page
 library(htmlwidgets)
 
@@ -42,7 +45,6 @@ lastYr_date <- as.Date(gsub(current_year, last_year, current_date))
 
 #### * Mobile detect
 
-#### * Spatial features ####
 # Spatial features to add to map
 # State boundaries
 state_sf <- tigris::states() %>% 
@@ -80,16 +82,17 @@ FactorizeRast <- function(r, type) {
     # Values have to be rounded to factorize
     r <- round(r)
     # Unique values up to 4 ("High risk" is always >= 4)
-    vals <- unique(values(r, na.rm = TRUE))
+    vals <- unique(values(r))
+    vals <- vals[!is.na(vals)]
     vals <- vals[vals <= 4]
     # Levels
-    lvls <- data.frame(id = vals) %>%
+    lvls <- data.frame(ID = vals) %>%
       mutate(
-        risk = ifelse(id < 1, "Very low", 
-                      ifelse(id >= 1 & id < 2, "Low/Medium", 
-                             ifelse(id >= 2 & id < 3, "Medium", 
-                                    ifelse(id >= 3 & id < 4, "Medium/High", "High"))))) %>%
-      arrange(id)
+        risk = ifelse(ID < 1, "<1: Very low", 
+                      ifelse(ID >= 1 & ID < 2, "1: Low/Medium", 
+                             ifelse(ID >= 2 & ID < 3, "2: Medium", 
+                                    ifelse(ID >= 3 & ID < 4, "3: Medium/High", ">3: High"))))) %>%
+      arrange(ID)
     # Factorize raster
     levels(r) <- lvls
     
@@ -99,7 +102,7 @@ FactorizeRast <- function(r, type) {
     r <- round(r)
     # Unique raster values
     vals <-  sort(unique(values(r, na.rm = TRUE)))
-    lvls <- data.frame(id = vals, risk = vals) %>%
+    lvls <- data.frame(ID = vals, risk = vals) %>%
       mutate(risk = case_when(risk <= 5 ~ "0-5", 
                               risk > 5 & risk <= 10 ~ "6-10", 
                               risk > 10 & risk <= 15 ~ "11-15", 
@@ -123,11 +126,15 @@ RiskMap <- function(input, raster_current, raster_lastYr, title_current, title_l
                     lgd_title, pal_risk_current, pal_risk_lastYr, unique_vals_current, 
                     unique_vals_lastYr, map_width, address_submit, coords) {
   
+  ## NOTE: replace this chunk if/when "addImageQuery" supports spatRast objects
+  ## FactorizeRast function also works on raster objects
+  #raster_current <- FactorizeRast(raster(raster_current), lgd_title)
+  #raster_lastYr <- FactorizeRast(raster(raster_lastYr), lgd_title)
   
   # Using a height of 1000 and minZoom = 7 is another option but font too
   # small and can't figure out an easy way to adjust font size.
   #### * Current year map ####
-  map_current <- leaflet(height = 500, #width = map_width(),
+  map_current <- leaflet(height = 500, width = map_width(),
                          options = leafletOptions(attributionControl = FALSE,
                                                   zoomControl = FALSE, minZoom = 6)) %>% 
     
@@ -136,12 +143,11 @@ RiskMap <- function(input, raster_current, raster_lastYr, title_current, title_l
     
     # Risk layer output
     addRasterImage(raster_current, color = pal_risk_current, opacity = 0.5,
-                   group = "Risk value", layerId = "Risk value") %>%
+                   group = "Value", layerId = "Value") %>%
     
     # Risk layer raster query (use project = TRUE or get wrong values)
-    addImageQuery(raster(raster_current), project = TRUE, prefix = "", digits = 2,
-                  layerId = "Risk value", position = "topleft", 
-                  type = "mousemove") %>%
+    addImageQuery(raster(raster_current), project = TRUE, prefix = "", digits = 0,
+                  layerId = "Value", position = "topleft", type = "mousemove") %>%
     
     # Add county lines / markers
     addPolylines(data = state_sf, group = "States", opacity = 0.25, 
@@ -174,12 +180,11 @@ RiskMap <- function(input, raster_current, raster_lastYr, title_current, title_l
     
     # Risk layer output
     addRasterImage(raster_lastYr, color = pal_risk_lastYr, opacity = 0.5,
-                   group = "Risk value (last year)", 
-                   layerId = "Risk value (last year)") %>%
+                   group = "Value (last year)", layerId = "Value (last year)") %>%
     
     # Risk layer raster query (use project = TRUE or get wrong values)
-    addImageQuery(raster(raster_lastYr), project = TRUE, prefix = "", digits = 2,
-                  layerId = "Risk value (last year)", position = "topleft",
+    addImageQuery(raster(raster_lastYr), project = TRUE, prefix = "", digits = 0,
+                  layerId = "Value (last year)", position = "topleft",
                   type = "mousemove") %>%
     
     # Add county lines / markers
@@ -208,11 +213,12 @@ RiskMap <- function(input, raster_current, raster_lastYr, title_current, title_l
   # Legend for current year map
   lgd_vals_current <- factor(unique_vals_current, 
                              levels = unique(levels(raster_current)[[1]]$risk))
+  
   map_current <- map_current %>%
     addLegendFactor(title = lgd_title, 
                     pal = colorFactor(pal_risk_current, lgd_vals_current),
                     values =  lgd_vals_current, position = "bottomleft",
-                    width = 10, height = 10, labelStyle = 'font-size: 12px;')
+                    width = 10, height = 10, labelStyle = 'font-size: 14px;')
   
   # Legend for last year map
   lgd_vals_lastYr <- factor(unique_vals_lastYr, 
@@ -221,27 +227,29 @@ RiskMap <- function(input, raster_current, raster_lastYr, title_current, title_l
     addLegendFactor(title = lgd_title, 
                     pal = colorFactor(pal_risk_lastYr, lgd_vals_lastYr),
                     values =  lgd_vals_lastYr,  position = "bottomleft",
-                    width = 10, height = 10, labelStyle = 'font-size: 12px;')
+                    width = 10, height = 10, labelStyle = 'font-size: 14px;')
   
   # Below statement is only for risk maps that have an address query
   # If input address doesn't return NULL coordinates, add markers and zoom
   if (address_submit == 1) {
     
-    if (!(is.na(coords()$lat)) & !(is.na(coords()$long))) {
+    if (!(is.na(coords$lat)) & !(is.na(coords$long))) {
       
       # Current year
       map_current <- map_current %>%
-        addCircleMarkers(lat = coords()$lat, lng = coords()$long,
+        addCircleMarkers(lat = coords$lat, lng = coords$long,
                          opacity = 0.75, color = "cyan", 
                          weight = 3, fill = FALSE) %>%
-        setView(lng = coords()$long, lat = coords()$lat, zoom = 11)
+        
+        setView(lng = coords$long, lat = coords$lat, zoom = 11)
       
       # Last year
       map_lastYr <- map_lastYr %>%
-        addCircleMarkers(lat = coords()$lat, lng = coords()$long,
+        addCircleMarkers(lat = coords$lat, lng = coords$long,
                          opacity = 0.75, color = "cyan", 
                          weight = 3, fill = FALSE) %>%
-        setView(lng = coords()$long, lat = coords()$lat, zoom = 11)
+        
+        setView(lng = coords$long, lat = coords$lat, zoom = 11)
       
     } 
     
@@ -254,6 +262,7 @@ RiskMap <- function(input, raster_current, raster_lastYr, title_current, title_l
   } else {
     out_map <- map_current
   }
+  
   
 }
 
@@ -289,9 +298,9 @@ tag.map.title <- tags$style(HTML("
     padding-bottom: 2px;
     border-radius: 2px;
     background: rgba(255,255,255,.75);
-    font-size: 14px;
+    font-size: 16px;
     font-weight: bold;
-    text-align: center;
+    text-align: left;
     color: rgb(51, 51, 51);
   }
 "))
@@ -458,18 +467,17 @@ ui <- fluidPage(
                          options = list(container = "body"))),
             )),
         
-        # Error message
-        #uiOutput("address_error"),
-        fluidRow(style="padding-left:15px;margin-top:1em;font-size:19px;",
-                 column(width = 12, uiOutput("address_error")),
-                 column(width = 12, uiOutput("coords_error"))),
-        
         # Risk map value for geocoded address
-        conditionalPanel(
-          condition = "input.address_checkbox == 1",
-          fluidRow(style = "font-size:19px;padding-left:15px;",
-                   column(width = 6, uiOutput("coords_value_current")),
-                   column(width = 6, uiOutput("coords_value_lastYr")))),
+        # conditionalPanel(
+        #   condition = "input.address_checkbox == 1",
+        #   fluidRow(style = "font-size:19px;padding-left:15px;",
+        #            column(width = 12, uiOutput("empty_address_error")),
+        #            column(width = 12, uiOutput("coords_error")),
+        #            column(width = 12, uiOutput("coords_outside")))),
+        fluidRow(style="padding-left:15px;margin-top:1em;font-size:19px;color:#f56954;",
+                 column(width = 12, uiOutput("empty_address_error")),
+                 column(width = 12, uiOutput("coords_error")),
+                 column(width = 12, uiOutput("coords_outside"))),
         
         # Risk maps
         fluidRow(style = "padding-left:15px;",
@@ -515,32 +523,6 @@ server <- function(input, output) {
     }
   })
   
-  #### * Error messages ####
-  # Report error message if "submit" button is hit before typing an address
-  address_error <- eventReactive(input$address_submit, {
-    validate(
-      need(input$address != "", "Please enter an address or location")
-    )
-  })
-  output$address_error <- renderUI({ # Send output to UI
-    address_error()
-  })
-  
-  # Report error message if coordinates cannot be obtained for an address
-  coords <- eventReactive(input$address_submit, {
-    if (input$address != "") { 
-      tribble(~addr, input$address) %>%
-        geocode(addr, method = "mapquest")  
-    }
-  })
-  
-  # NA values will be in coordinates output if address couldn't be geocoded
-  output$coords_error <- renderText({
-    if (any(is.na(coords()))) # If any NA values, return message
-      return("<font color=\"#7F7F7F\">Sorry, this address could not
-             be geocoded! Check for typos.</font>")
-  })
-  
   # Generate leaflet maps ----
   # Different maps are rendered depending on radioButton inputs
   observeEvent(input$risk, {
@@ -562,30 +544,30 @@ server <- function(input, output) {
     # Dates for current year
     title_current <- switch(
       input$risk, 
-      "Three Day" = paste(DateFormat(current_date), " \u2013", DateFormat(current_date + 3)),
-      "Four Day" = paste(DateFormat(current_date), " \u2013", DateFormat(current_date + 4)),
+      "Three Day" = paste0(DateFormat(current_date), " \u2013", DateFormat(current_date + 3)),
+      "Four Day" = paste0(DateFormat(current_date), " \u2013", DateFormat(current_date + 4)),
       "Cumulative (Total)" = paste0("1/1/", current_year, " \u2013", DateFormat(current_date + 4)))
     title_current <- tags$div(tag.map.title, HTML(title_current))
     
     # Dates for last year
     title_lastYr <- switch(
       input$risk, 
-      "Three Day" = paste(DateFormat(lastYr_date), " \u2013 ", DateFormat(lastYr_date + 3)),
-      "Four Day" = paste(DateFormat(lastYr_date), " \u2013 ", DateFormat(lastYr_date + 4)),
-      "Cumulative (Total)" = paste0("1/1/", last_year, " \u2013 ", DateFormat(lastYr_date + 4)))
+      "Three Day" = paste0(DateFormat(lastYr_date), " \u2013", DateFormat(lastYr_date + 3)),
+      "Four Day" = paste0(DateFormat(lastYr_date), " \u2013", DateFormat(lastYr_date + 4)),
+      "Cumulative (Total)" = paste0("1/1/", last_year, " \u2013", DateFormat(lastYr_date + 4)))
     title_lastYr <- tags$div(tag.map.title, HTML(title_lastYr))
     
-    #### * Map legend and color palette ####
+    #### * Facotize rasters, define legend and palettes ####
     # Legend title
     lgd_title <- switch(input$risk,
                         "Cumulative (Total)" = "Total Risk",
-                        "Three Day" = "3 Day Risk",
-                        "Four Day" = "4 Day Risk")
+                        "Three Day" = "Three Day Risk",
+                        "Four Day" = "Four Day Risk")
     
     # Color palettes
     # Long-term risk (total for year) uses a continuous scale
     # Using same scale for both maps requires using scales for the 
-    # raster with the.5 highest risk value (i.e. greatest range of values)
+    # raster with the highest risk value (i.e. greatest range of values)
     both_rasters <- c(raster_current, raster_lastYr)
     max_rast <- round(app(both_rasters, max))
     
@@ -597,7 +579,6 @@ server <- function(input, output) {
     raster_lastYr <- FactorizeRast(raster_lastYr, lgd_title)
     
     # Need to know number of unique values for color ramp
-    #ncols <- nrow(unique(values(max_rast, na.rm = TRUE)))
     ncols <-  length(unique(levels(max_rast)[[1]]$risk))
     
     # Palette depends on risk map type
@@ -609,10 +590,10 @@ server <- function(input, output) {
       pal_risk <- colorRampPalette(c("#009405", "#ffff00", "#da9101", "#c30010"))(11)
     }
     
-    # Retail needed levels only
+    # Retain needed levels only
     pal_risk <- pal_risk[1:ncols]
     
-    # Define attributes for rasters so that legend shows values correctly
+    # Define raster attributes so that legend shows values correctly
     unique_vals_current <- unique(levels(raster_current)[[1]]$risk)
     unique_vals_lastYr <- unique(levels(raster_lastYr)[[1]]$risk)
     pal_risk_current <- pal_risk[1:length(unique_vals_current)]
@@ -630,56 +611,77 @@ server <- function(input, output) {
     
     # Below updates maps each time a new address (location) is submitted
     # Not sure else how to do this besides having a nested "observeEvent"
-    observeEvent(input$address_submit, {
-      
-      address_submit <- 1
-      
-      # Produce leaflet map using RiskMap function
-      # Coordinates of address are passed into the function this time
-      output$risk_map <- renderUI({ 
-        RiskMap(input, raster_current, raster_lastYr, title_current, title_lastYr, 
-                lgd_title, pal_risk_current, pal_risk_lastYr, unique_vals_current, unique_vals_lastYr,
-                map_width, address_submit = 1, coords = coords) 
-      })
-      
-      # Add circle markers for geocoded location if coordinates are not NA
-      output$coords_value_current <- renderText({
-        
-        if (input$address != "") {
-          
-          xy <- data.frame(x = coords()$long, y = coords()$lat)
-          rast_val <- terra::extract(raster_current, xy)[1,2]
-          
-          if (!is.na(rast_val)) {
-            paste(input$risk, "Risk at Location:", rast_val)
-          } else {
-            "No risk forecast for this location"
-          }
-          
-        }
-      })
-      
-      # Last year risk map
-      output$coords_value_lastYr <- renderText({
-        
-        if(input$address != "" & input$lastYr_checkbox == 1) {
-          
-          xy <- data.frame(x = coords()$long, y = coords()$lat)
-          rast_val <- terra::extract(raster_lastYr, xy)[1,2]
-          
-          if (!is.na(rast_val)) {
-            
-            paste(input$risk, "Risk at Location:", rast_val)
-            
-          } else {
-            "No risk forecast for this location - please try again"
-          }
-          
-        }
-        
-      })
-      
+    # First determine whether address box is checked
+    address_checked <- reactive({
+      input$address_checkbox
     })
+    
+    # If address box is checked, then the map will react when an address is
+    # submitted by zooming to that location (unless it couldn't be geocoded). 
+    # If address box is unchecked, the map will zoom back out to western OR and WA
+    observeEvent(address_checked(), {
+      
+      if (address_checked()) {
+        
+        observeEvent(input$address_submit, {
+          
+          #### * Error messages ####
+          
+          # Submitted location
+          location <- input$address
+          
+          # Geocode the location
+          coords <- tribble(~addr, location) %>%
+            geocode(addr, method = "mapquest")
+          
+          # NA values will be in coordinates if location couldn't be geocoded
+          # This message is only provided if a location was actually submitted
+          output$coords_error <- renderText({
+            if (is.na(coords$lat))
+              return("Sorry, this location could not be geocoded.")
+          })
+          
+          # Return message if location falls outside of forecast
+          # Map still zooms to location 
+          if (!is.na(coords$lat)) {
+            # Determine whether there are predictions for the location
+            xy <- data.frame(x = coords$long, y = coords$lat)
+            rast_val <- terra::extract(raster_current, xy)[1,2]
+            
+            output$coords_outside <- renderText({
+              if (is.na(rast_val)) {
+                return("No risk forecast for this location.")
+              }
+              
+            })
+          }
+          
+          # Risk map zooms to location only if coordinates are not NA (submitted=1)
+          if (!is.na(coords$lat)) {
+            submitted <- 1 
+          } else {
+            submitted <- 0
+          }
+          
+          # Produce leaflet map using RiskMap function
+          output$risk_map <- renderUI({ 
+            RiskMap(input, raster_current, raster_lastYr, title_current, title_lastYr, 
+                    lgd_title, pal_risk_current, pal_risk_lastYr, unique_vals_current, unique_vals_lastYr,
+                    map_width, address_submit = submitted, coords = coords) 
+          })
+          
+        })
+        
+        # Zoom back out to western OR and WA if address box is unchecked
+      } else {
+        output$risk_map <- renderUI({ 
+          RiskMap(input, raster_current, raster_lastYr, title_current, title_lastYr, 
+                  lgd_title, pal_risk_current, pal_risk_lastYr, unique_vals_current, 
+                  unique_vals_lastYr, map_width, address_submit = 0, coords = NA) 
+        })
+      }
+    })
+    
     
   })
   
