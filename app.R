@@ -291,7 +291,7 @@ rasts_lastYr <- map(
 # border-radius makes rounded edges
 tag.map.title <- tags$style(HTML("
   .leaflet-control.map-title { 
-    width: 85px;
+    width: 130px;
     padding-left: 3px; 
     padding-right: 3px; 
     padding-top: 2px; 
@@ -358,12 +358,13 @@ ui <- fluidPage(
         box(title = strong("Overview", style = "font-size:22px"),
             status = "primary",
             solidHeader = TRUE,
-            collapsible = FALSE,
+            collapsible = TRUE,
+            collapsed = FALSE,
             width = 12,
             color = "light-blue",
             fluidRow(
               style = "font-size:19px;",
-              column(width = 10, 
+              column(width = 12, 
                      offset = 0, 
                      p("The boxwood blight infection risk mapping tool uses gridded climate data to calculate the risk of boxwood being infected by boxwood blight in western Oregon and Washington. Three day and four day forecasts of infection risk are available, as well as a map of cumulative risk (Jan 1 to date of four day forecast). Climate data are derived from the ", a(href = "https://www.prism.oregonstate.edu", "PRISM", target = "_blank", style="text-decoration-line: underline;"), "database at a 800 m", tags$sup(2, .noWS = "before"), " resolution. Presently models are run only for areas west of the Cascades (approximately west of \u2013120.5\u00B0W). Please see a", a(href = "https://www.prism.oregonstate.edu", "tutorial", target = "_blank", style="text-decoration-line: underline;"), "for details on tool use and map interpretation. Expand the Introduction below to learn more about boxwood blight and risk models for this disease."))))),
       
@@ -379,13 +380,13 @@ ui <- fluidPage(
             color = "light-blue",
             fluidRow(
               style = "font-size:19px;",
-              column(width = 2, offset = 0, align = "center", style='padding:0px;font-size:14px;',
-                     img(src = "https://raw.githubusercontent.com/bbarker505/BOXB-webapp/main/images/boxb-infected-shrubs.png", width = "155px"),
-                     img(src = "https://raw.githubusercontent.com/bbarker505/BOXB-webapp/main/images/boxb-infected-leaves.png", width = "155px" ),
-                     img(src = "https://raw.githubusercontent.com/bbarker505/BOXB-webapp/main/images/boxb-infected-stems.png", width = "155px")),
-              column(width = 10, offset = 0, 
+              column(width = 2, align = "center", style='font-size:14px;',
+                     img(src = "https://raw.githubusercontent.com/bbarker505/BOXB-webapp/main/images/boxb-infected-shrubs.png", width = "150px", style = "max-height: 240px;"),
+                     img(src = "https://raw.githubusercontent.com/bbarker505/BOXB-webapp/main/images/boxb-infected-leaves.png", width = "150px", style = "max-height: 240px;"),
+                     img(src = "https://raw.githubusercontent.com/bbarker505/BOXB-webapp/main/images/boxb-infected-stems.png", width = "150px", style = "max-height: 240px;")),
+              column(width = 10,
                      p(strong("Introduction: "), "Boxwood blight caused by the fungus ", em("Calonectria pseudonaviculata"), " can result in defoliation, decline, and death of susceptible varieties of boxwood, including most varieties of ", em("Buxus sempervirens"), " such as \u0022Suffruticosa\u0022  (English boxwood) and \u0022Justin Brouwers\u0022. Images show diagnostic symptoms of boxwood blight including defoliation ", strong("(top)"), ", leaf spots ", strong("(middle)"), " and black streaks on stems ", strong("(bottom)"), "(courtesy of Chuan Hong). The fungus has been detected at several locations (mostly in nurseries) in at least six different counties in Oregon and is thought to be established in some areas. Previous", a(href = "https://doi.org/10.3390/biology11060849", "research", target = "_blank", style="text-decoration-line: underline;"), "indicates that western Oregon and Washington have highly suitable climates for establishment of", em("C. pseudonaviculata"),  ". Tools are therefore needed to inform growers and gardeners about when environmental conditions are conducive to boxwood blight infection and establishment."),
-                     p("Generally, it should be very humid or raining and at moderately warm temperatures (60-85 \260F) for a couple days for boxwood blight infection risk to be high. An inoculum source must be present nearby for infection to occur. Overhead irrigation facilitates outbreaks because it creates higher relative humidity and exposes leaf surfaces to longer periods of leaf wetness. For more information on preventing and managing boxwood blight, see the ", a(href = " https://pnwhandbooks.org/plantdisease/host-disease/boxwood-buxus-spp-boxwood-blight", "Pacific Northwest Pest Management Handbook", target = "_blank", style="text-decoration-line: underline;"), " and a ", a(href = " https://www.pubs.ext.vt.edu/content/dam/pubs_ext_vt_edu/PPWS/PPWS-29/PPWS-29-pdf.pdf", "publication", target = "_blank", style="text-decoration-line: underline;"),"by Virginia Cooperative Extension."),
+                     p("Generally, it should be very humid or raining and at moderately warm temperatures (60\u201385\u00B0F) for a couple days for boxwood blight infection risk to be high. An inoculum source must be present nearby for infection to occur. Overhead irrigation facilitates outbreaks because it creates higher relative humidity and exposes leaf surfaces to longer periods of leaf wetness. For more information on preventing and managing boxwood blight, see the ", a(href = " https://pnwhandbooks.org/plantdisease/host-disease/boxwood-buxus-spp-boxwood-blight", "Pacific Northwest Pest Management Handbook", target = "_blank", style="text-decoration-line: underline;"), " and a ", a(href = " https://www.pubs.ext.vt.edu/content/dam/pubs_ext_vt_edu/PPWS/PPWS-29/PPWS-29-pdf.pdf", "publication", target = "_blank", style="text-decoration-line: underline;"),"by Virginia Cooperative Extension."),
                      p(strong("Tool description: "), "The risk mapping tool differs from the ", a(href = "https://uspest.org/risk/boxwood_app", "boxwood blight model app", target = "_blank", style="text-decoration-line: underline;"), "and the", a(href = "https://uspest.org/risk/boxwood_map", "synoptic map-view of risk", target = "_blank", style="text-decoration-line: underline;"), "available at", a(href = "https://uspest.org", "USPest.org", target = "_blank", style="text-decoration-line: underline;"), "because it uses daily gridded climate data instead of hourly climate data from single weather stations. Spatialized predictions allow you to visualize risk for all areas in western Oregon and Washington, from a single neighborhood to an entire city or region. The spatial model is run using a modified version of a platform known as", a(href = "https://uspest.org/CAPS/", "DDRP", target = "_blank", .noWS = "after", style="text-decoration-line: underline;"), ", which provides real-time forecasts of phenology and establishment risk of 16 species of invasive insects in the contiguous US. It will likely need to fine-tuned as more infection incidence data become available."),
                      p(strong("Suggested citation: "), "Barker, B. S., and L. Coop. 2023. Boxwood blight risk mapping app for western Oregon and Washington. Oregon IPM Center, Oregon State University.", a(href = "https://uspest.org/xxxx", "https://uspest.org/xxxx", .noWS = c("after"), style="text-decoration-line: underline;"), "."),
                      p(strong("Source code and feedback: "), "To view the source code, visit the", a(href = "https://github.com/bbarker505/BOXB-webapp", "GitHub repository", target = "_blank", .noWS = c("after"), style="text-decoration-line: underline;"), ". To report bugs or provide feedback, please e-mail Brittany Barker at", a(href = "mailto:brittany.barker@oregonstate.edu", "brittany.barker@oregonstate.edu", .noWS = c("after"), style="text-decoration-line: underline;"), "."),
@@ -484,13 +485,14 @@ ui <- fluidPage(
                  box(title = strong("Acknowledgements", style = "font-size:22px"),
                      status = "primary",
                      solidHeader = TRUE,
-                     collapsible = FALSE,
+                     collapsible = TRUE,
+                     collapsed = FALSE,
                      width = 12,
                      color = "light-blue",
                      fluidRow(
                        style = "font-size:19px;",
                        column(width = 12, 
-                              p("Creation of this app was funded by", a(href = "https://www.nifa.usda.gov/grants/programs/crop-protection-pest-management-program", "Oregon Department of Agriculture", target = "_blank", style="text-decoration-line: underline;"), "Nursery Research Grant no. ODA-4310-A. Boxwood blight risk modeling work was funded by the US Farm Bill FY17,", a(href = "https://www.aphis.usda.gov/aphis/", "USDA APHIS PPQ", target = "_blank", style="text-decoration-line: underline;"), "agreement number 20-8130-0282-CA, and", a(href = "https://www.nifa.usda.gov/grants/programs/crop-protection-pest-management-program", "USDA NIFA CPPM", target = "_blank", style="text-decoration-line: underline;"), "Extension Implementation Program grant no. 2021-70006-35581. Many collaborators from OSU, USDA ARS, Virginia Tech, and North Carolina State University helped improve the model."))))),
+                              p("Creation of this app was funded by", a(href = "https://www.oregon.gov/ODA", "Oregon Department of Agriculture", target = "_blank", style="text-decoration-line: underline;"), "Nursery Research Grant no. ODA-4310-A. Boxwood blight risk modeling work was funded by the US Farm Bill FY17,", a(href = "https://www.aphis.usda.gov/aphis/", "USDA APHIS PPQ", target = "_blank", style="text-decoration-line: underline;"), "agreement number 20-8130-0282-CA, and", a(href = "https://www.nifa.usda.gov/grants/programs/crop-protection-pest-management-program", "USDA NIFA CPPM", target = "_blank", style="text-decoration-line: underline;"), "Extension Implementation Program grant no. 2021-70006-35581. Many collaborators from OSU, USDA ARS, Virginia Tech, and North Carolina State University helped improve the model."))))),
         
         # Logos
         fluidRow(
