@@ -27,11 +27,11 @@ library(fresh) # Color theme for web app page
 library(htmlwidgets)
 
 # TO DO: "“addImageQuery” only allows for raster and stars objects. Hopefully
-# this will be resolved so can avoid converting spatRaster to raster.
-
-Sys.setenv(MAPQUEST_API_KEY = "5vjLXIpEjMHpANFr4Ok2BNxpuQPrsGQP")
+# this will be resolved so we can avoid converting spatRaster to raster.
 
 ## Setup ----
+
+Sys.setenv(MAPQUEST_API_KEY = "5vjLXIpEjMHpANFr4Ok2BNxpuQPrsGQP")
 
 #### * Dates 
 # Used in map titles
@@ -43,17 +43,16 @@ current_date <- as.Date(paste0("Jun-11-", current_year), format = "%b-%d-%Y")
 last_year <- current_year - 1
 lastYr_date <- as.Date(gsub(current_year, last_year, current_date))
 
-#### * Mobile detect
-
+#### * Spatial features ####
 # Spatial features to add to map
 # State boundaries
-state_sf <- tigris::states() %>% 
-  filter(STATEFP %in% c(41,53)) %>%
+state_sf <- st_read("./features/states_OR_WA.shp") %>%
   st_transform(crs = 4326)
 
 # County boundaries
-county_sf <- tigris::counties(state = c(41,53)) %>%
+county_sf <- st_read("./features/counties_OR_WA.shp") %>%
   st_transform(crs = 4326)
+
 
 # Functions ----
 
@@ -79,20 +78,29 @@ FactorizeRast <- function(r, type) {
   
   # 3- and 4-day risk - four levels
   if (grepl("Day", type)) {
-    # Values have to be rounded to factorize
-    r <- round(r)
+    
+    # Must recode raster because raster factorization doesn't work when 
+    # there are "duplicate" values (e.g., if 1.5 and 2 are both "High Risk"),
+    # and apparently it won't accept decimal values? This is strange.
+    r[r>=2] <- 4 # Values >2 are 5-8 lesions
+    r[r==1.5] <- 3 # Values of 1.5 are 1-6 lesions
+    r[r==1] <- 2 # Values of 1 are 1st infection susc. varieties
+    r[r==0.5] <- 1 # Values of 0.5 are low risk 
+    
     # Unique values up to 4 ("High risk" is always >= 4)
     vals <- unique(values(r))
     vals <- vals[!is.na(vals)]
-    vals <- vals[vals <= 4]
-    # Levels
+    
+    #Levels
     lvls <- data.frame(ID = vals) %>%
       mutate(
-        risk = ifelse(ID < 1, "<1: Very low", 
-                      ifelse(ID >= 1 & ID < 2, "1: Low/Medium", 
-                             ifelse(ID >= 2 & ID < 3, "2: Medium", 
-                                    ifelse(ID >= 3 & ID < 4, "3: Medium/High", ">3: High"))))) %>%
+        risk = case_when(ID == 0 ~ "0: Very Low Risk",
+                         ID == 1 ~ "1: Low Risk",
+                         ID == 2 ~ "2: 1st Infec. Susc. Vars.",
+                         ID == 3 ~ "3: Up to 1-6 Lesions",
+                         ID == 4 ~ "4: Up to 5-18 Lesions")) %>%
       arrange(ID)
+    
     # Factorize raster
     levels(r) <- lvls
     
@@ -126,11 +134,6 @@ RiskMap <- function(input, raster_current, raster_lastYr, title_current, title_l
                     lgd_title, pal_risk_current, pal_risk_lastYr, unique_vals_current, 
                     unique_vals_lastYr, map_width, address_submit, coords) {
   
-  ## NOTE: replace this chunk if/when "addImageQuery" supports spatRast objects
-  ## FactorizeRast function also works on raster objects
-  #raster_current <- FactorizeRast(raster(raster_current), lgd_title)
-  #raster_lastYr <- FactorizeRast(raster(raster_lastYr), lgd_title)
-  
   # Using a height of 1000 and minZoom = 7 is another option but font too
   # small and can't figure out an easy way to adjust font size.
   #### * Current year map ####
@@ -159,7 +162,11 @@ RiskMap <- function(input, raster_current, raster_lastYr, title_current, title_l
     # Shows map coordinates as mouse is moved over map
     addMouseCoordinates %>%
     
+    # Fit bounds to western OR and WA
     fitBounds(lng1 = -127, lat1 = 41.98, lng2 = -120.5, lat2 = 49.1664) %>%
+    
+    # Max bounds prevents zooming out past western OR and WA
+    setMaxBounds(lng1 = -127, lat1 = 41.98, lng2 = -120.5, lat2 = 49.1664) %>%
     
     # Change position of zoom control buttons
     htmlwidgets::onRender("function(el, x) {
@@ -197,8 +204,11 @@ RiskMap <- function(input, raster_current, raster_lastYr, title_current, title_l
     # Shows map coordinates as mouse is moved over map
     addMouseCoordinates %>%
     
-    # Set bounds
+    # Fit bounds to western OR and WA
     fitBounds(lng1 = -127, lat1 = 41.98, lng2 = -120.5, lat2 = 49.1664) %>%
+    
+    # Max bounds prevents zooming out past western OR and WA
+    setMaxBounds(lng1 = -127, lat1 = 41.98, lng2 = -120.5, lat2 = 49.1664) %>%
     
     # Change position of zoom control buttons
     htmlwidgets::onRender("function(el, x) {
@@ -233,7 +243,9 @@ RiskMap <- function(input, raster_current, raster_lastYr, title_current, title_l
   # If input address doesn't return NULL coordinates, add markers and zoom
   if (address_submit == 1) {
     
-    if (!(is.na(coords$lat)) & !(is.na(coords$long))) {
+    if (coords$lat > 41.9800 & coords$lat < 49.1664 & 
+        coords$long > -127 & coords$long < -120.5) {
+      #if (!(is.na(coords$lat)) & !(is.na(coords$long))) {
       
       # Current year
       map_current <- map_current %>%
@@ -262,7 +274,6 @@ RiskMap <- function(input, raster_current, raster_lastYr, title_current, title_l
   } else {
     out_map <- map_current
   }
-  
   
 }
 
@@ -380,14 +391,14 @@ ui <- fluidPage(
             color = "light-blue",
             fluidRow(
               style = "font-size:19px;",
-              column(width = 2, align = "center", style='font-size:14px;',
-                     img(src = "https://raw.githubusercontent.com/bbarker505/BOXB-webapp/main/images/boxb-infected-shrubs.png", width = "150px", style = "max-height: 240px;"),
-                     img(src = "https://raw.githubusercontent.com/bbarker505/BOXB-webapp/main/images/boxb-infected-leaves.png", width = "150px", style = "max-height: 240px;"),
-                     img(src = "https://raw.githubusercontent.com/bbarker505/BOXB-webapp/main/images/boxb-infected-stems.png", width = "150px", style = "max-height: 240px;")),
-              column(width = 10,
+              column(width = 2, align = "center", style='padding:0px;font-size:14px;',
+                     img(src = "https://raw.githubusercontent.com/bbarker505/BOXB-webapp/main/images/boxb-infected-shrubs.png", width = "155px", style = "max-height: 240px;"),
+                     img(src = "https://raw.githubusercontent.com/bbarker505/BOXB-webapp/main/images/boxb-infected-leaves.png", width = "155px", style = "max-height: 240px;"),
+                     img(src = "https://raw.githubusercontent.com/bbarker505/BOXB-webapp/main/images/boxb-infected-stems.png", width = "155px", style = "max-height: 240px;")),
+              column(width = 10, offset = 0, 
                      p(strong("Introduction: "), "Boxwood blight caused by the fungus ", em("Calonectria pseudonaviculata"), " can result in defoliation, decline, and death of susceptible varieties of boxwood, including most varieties of ", em("Buxus sempervirens"), " such as \u0022Suffruticosa\u0022  (English boxwood) and \u0022Justin Brouwers\u0022. Images show diagnostic symptoms of boxwood blight including", strong("(A)"),  "defoliation,", strong("(B)"), "leaf spots, and", strong("(C)"), "black streaks on stems (courtesy of Chuan Hong). The fungus has been detected at several locations (mostly in nurseries) in at least six different counties in Oregon and is thought to be established in some areas. Previous", a(href = "https://doi.org/10.3390/biology11060849", "research", target = "_blank", style="text-decoration-line: underline;"), "indicates that western Oregon and Washington have highly suitable climates for establishment of", em("C. pseudonaviculata"),  ". Tools are therefore needed to inform growers and gardeners about when environmental conditions are conducive to boxwood blight infection and establishment."),
                      p("Generally, it should be very humid or raining and at moderately warm temperatures (60\u201385\u00B0F) for a couple days for boxwood blight infection risk to be high. An inoculum source must be present nearby for infection to occur. Overhead irrigation facilitates outbreaks because it creates higher relative humidity and exposes leaf surfaces to longer periods of leaf wetness. For more information on preventing and managing boxwood blight, see the ", a(href = " https://pnwhandbooks.org/plantdisease/host-disease/boxwood-buxus-spp-boxwood-blight", "Pacific Northwest Pest Management Handbook", target = "_blank", style="text-decoration-line: underline;"), " and a ", a(href = " https://www.pubs.ext.vt.edu/content/dam/pubs_ext_vt_edu/PPWS/PPWS-29/PPWS-29-pdf.pdf", "publication", target = "_blank", style="text-decoration-line: underline;"),"by Virginia Cooperative Extension."),
-                     p(strong("Tool description: "), "The risk mapping tool differs from the ", a(href = "https://uspest.org/risk/boxwood_app", "boxwood blight model app", target = "_blank", style="text-decoration-line: underline;"), "and the", a(href = "https://uspest.org/risk/boxwood_map", "synoptic map-view of risk", target = "_blank", style="text-decoration-line: underline;"), "available at", a(href = "https://uspest.org", "USPest.org", target = "_blank", style="text-decoration-line: underline;"), "because it uses daily gridded climate data instead of hourly climate data from single weather stations. Spatialized predictions allow you to visualize risk for all areas in western Oregon and Washington, from a single neighborhood to an entire city or region. The spatial model is run using a modified version of a platform known as", a(href = "https://uspest.org/CAPS/", "DDRP", target = "_blank", .noWS = "after", style="text-decoration-line: underline;"), ", which provides real-time forecasts of phenology and establishment risk of 16 species of invasive insects in the contiguous US. It will likely need to fine-tuned as more infection incidence data become available."),
+                     p(strong("Tool description: "), "The risk mapping tool is similar to the ", a(href = "https://uspest.org/risk/boxwood_app", "boxwood blight model app", target = "_blank", style="text-decoration-line: underline;"), "and the", a(href = "https://uspest.org/risk/boxwood_map", "synoptic map-view of risk", target = "_blank", style="text-decoration-line: underline;"), "available at", a(href = "https://uspest.org", "USPest.org", target = "_blank", style="text-decoration-line: underline;"), "except that it uses daily gridded climate data instead of hourly climate data from single weather stations. Spatialized predictions allow you to visualize risk for all areas in western Oregon and Washington, from a single neighborhood to an entire city or region. The spatial model is run using a modified version of a platform known as", a(href = "https://uspest.org/CAPS/", "DDRP", target = "_blank", .noWS = "after", style="text-decoration-line: underline;"), ", which provides real-time forecasts of phenology and establishment risk of 16 species of invasive insects in the contiguous US. It will likely need to be fine-tuned as more infection incidence data become available. Technical information on the station-based (hourly) model can be found at", a(href = "https://uspest.org/wea/Boxwood_blight_risk_model_summaryV3.pdf", "USPest.org", target = "_blank", .noWS = "after", style="text-decoration-line: underline;"),"."),
                      p(strong("Suggested citation: "), "Barker, B. S., and L. Coop. 2023. Boxwood blight risk mapping app for western Oregon and Washington. Oregon IPM Center, Oregon State University.", a(href = "https://uspest.org/xxxx", "https://uspest.org/xxxx", .noWS = c("after"), style="text-decoration-line: underline;"), "."),
                      p(strong("Source code and feedback: "), "To view the source code, visit the", a(href = "https://github.com/bbarker505/BOXB-webapp", "GitHub repository", target = "_blank", .noWS = c("after"), style="text-decoration-line: underline;"), ". To report bugs or provide feedback, please e-mail Brittany Barker at", a(href = "mailto:brittany.barker@oregonstate.edu", "brittany.barker@oregonstate.edu", .noWS = c("after"), style="text-decoration-line: underline;"), "."),
                      p(strong("Disclaimer: "), "The risk index is intended to inform your decisions about management actions, such as choice and timing of control measures and intensity of scouting. It should supplement, not replace, the other factors you consider in making these decisions. Use at your own risk."))))),
@@ -420,7 +431,7 @@ ui <- fluidPage(
                        shinyBS::bsPopover(
                          id = "info_maptype",
                          title = "Select risk map",
-                         content = paste0("Three Day and Four Day risk maps show forecasts of infection risk for ", DateFormat(current_date + 3), " and ",  DateFormat(current_date + 4), ", respectively. The Cumulative (Total) risk map shows predictions of total risk accumulation between the start of the year and ", DateFormat(current_date + 4), ". Hover the mouse over a location on the map to see its risk value."),
+                         content = paste0("Three Day and Four Day risk maps show forecasts of infection risk for ", DateFormat(current_date + 3), " and ",  DateFormat(current_date + 4), ", respectively. Possible levels of infection risk are: Very Low Risk, Low Risk, 1st Infection of Susceptible Varieties, Up to 1-6 Lesions, and Up to 5-18 Lesions. The Cumulative (Total) risk map shows predictions of total risk accumulation between the start of the year and ", DateFormat(current_date + 4), ". Hover the mouse over a location on the map to see a numerical risk value."),
                          placement = "right",
                          trigger = "hover",
                          options = list(container = "body"))),
@@ -567,7 +578,8 @@ server <- function(input, output) {
     # Using same scale for both maps requires using scales for the 
     # raster with the highest risk value (i.e. greatest range of values)
     both_rasters <- c(raster_current, raster_lastYr)
-    max_rast <- round(app(both_rasters, max))
+    max_rast <- app(both_rasters, max)
+    #max_rast <- round(app(both_rasters, max))
     
     # Convert rasters to factor to categorical only for 3- and 4-day risk
     # Also define palettes for categorical maps
@@ -623,8 +635,7 @@ server <- function(input, output) {
         
         observeEvent(input$address_submit, {
           
-          #### * Error messages ####
-          
+          #### * Geocode location ####
           # Submitted location
           location <- input$address
           
@@ -632,27 +643,31 @@ server <- function(input, output) {
           coords <- tribble(~addr, location) %>%
             geocode(addr, method = "mapquest")
           
-          # NA values will be in coordinates if location couldn't be geocoded
-          # This message is only provided if a location was actually submitted
+          #### * Address submit errors ####
           output$coords_error <- renderText({
-            if (is.na(coords$lat))
-              return("Sorry, this location could not be geocoded.")
-          })
-          
-          # Return message if location falls outside of forecast
-          # Map still zooms to location 
-          if (!is.na(coords$lat)) {
-            # Determine whether there are predictions for the location
-            xy <- data.frame(x = coords$long, y = coords$lat)
-            rast_val <- terra::extract(raster_current, xy)[1,2]
             
-            output$coords_outside <- renderText({
+            # Error: empty location submission ("")
+            if (coords$addr == "") {
+              return("Please enter a location.")
+              
+              # Error: a location was entered but could not be geocoded
+            } else if (is.na(coords$lat & coords$addr != "")) {
+              return("Sorry, this location could not be geocoded.")
+              
+              # Error: a location was valid but falls outside of risk forecast bounds
+            } else if (!is.na(coords$lat)) {
+              # Determine whether there are predictions for the location
+              xy <- data.frame(x = coords$long, y = coords$lat)
+              rast_val <- terra::extract(raster_current, xy)[1,2]
+              
+              # Error message if rast value is NA
               if (is.na(rast_val)) {
                 return("No risk forecast for this location.")
               }
               
-            })
-          }
+            }
+            
+          })
           
           # Risk map zooms to location only if coordinates are not NA (submitted=1)
           if (!is.na(coords$lat)) {
@@ -679,7 +694,6 @@ server <- function(input, output) {
         })
       }
     })
-    
     
   })
   
