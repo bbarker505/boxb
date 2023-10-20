@@ -18,6 +18,7 @@ library(leafsync) # Sync two leaflet maps (current year + last year)
 library(lubridate) # Working with dates
 library(tidygeocoder) # Obtain coordinates from address
 library(shiny) # Web app 
+library(shinycssloaders) # "Loading" animation for risk maps (waiting)
 library(shinyWidgets)
 library(shinydashboard)
 library(shinyBS) # Info tabs next to risk map menu items
@@ -52,7 +53,6 @@ state_sf <- st_read("./features/states_OR_WA.shp") %>%
 # County boundaries
 county_sf <- st_read("./features/counties_OR_WA.shp") %>%
   st_transform(crs = 4326)
-
 
 # Functions ----
 
@@ -131,8 +131,42 @@ FactorizeRast <- function(r, type) {
 
 # Produce a leaflet map showing risk of infection
 RiskMap <- function(input, raster_current, raster_lastYr, title_current, title_lastYr, 
-                    lgd_title, pal_risk_current, pal_risk_lastYr, unique_vals_current, 
-                    unique_vals_lastYr, map_width, address_submit, coords) {
+                    lgd_title, map_width, address_submit, coords) {
+  
+  # Color palettes
+  # Long-term risk (total for year) uses a continuous scale
+  # Using same scale for both maps requires using scales for the 
+  # raster with the highest risk value (i.e. greatest range of values)
+  both_rasters <- c(raster_current, raster_lastYr)
+  max_rast <- app(both_rasters, max)
+  
+  # Convert rasters to factor to categorical only for 3- and 4-day risk
+  # Also define palettes for categorical maps
+  # Legend title is used to define the type of risk map (short-term vs. cumulative)
+  max_rast <- FactorizeRast(max_rast, lgd_title)
+  raster_current <- FactorizeRast(raster_current, lgd_title)
+  raster_lastYr <- FactorizeRast(raster_lastYr, lgd_title)
+  
+  # Need to know number of unique values for color ramp
+  ncols <-  length(unique(levels(max_rast)[[1]]$risk))
+  
+  # Palette depends on risk map type
+  # Maximum of 5 colors for 3- and 4-day vs. 11 colors for cumulative
+  # Green-yellow-red
+  if (grepl("Day", lgd_title)) {
+    pal_risk <- colorRampPalette(c("#009405", "#ffff00", "#da9101", "#c30010"))(5)
+  } else {
+    pal_risk <- colorRampPalette(c("#009405", "#ffff00", "#da9101", "#c30010"))(11)
+  }
+  
+  # Retain needed levels only
+  pal_risk <- pal_risk[1:ncols]
+  
+  # Define raster attributes so that legend shows values correctly
+  unique_vals_current <- unique(levels(raster_current)[[1]]$risk)
+  unique_vals_lastYr <- unique(levels(raster_lastYr)[[1]]$risk)
+  pal_risk_current <- pal_risk[1:length(unique_vals_current)]
+  pal_risk_lastYr <- pal_risk[1:length(unique_vals_lastYr)]
   
   # Using a height of 1000 and minZoom = 7 is another option but font too
   # small and can't figure out an easy way to adjust font size.
@@ -377,7 +411,7 @@ ui <- fluidPage(
               style = "font-size:19px;",
               column(width = 12, 
                      offset = 0, 
-                     p("The boxwood blight infection risk mapping tool uses gridded climate data to calculate the risk of boxwood being infected by boxwood blight in western Oregon and Washington. Three day and four day forecasts of infection risk are available, as well as a map of cumulative risk (Jan 1 to date of four day forecast). Climate data are derived from the ", a(href = "https://www.prism.oregonstate.edu", "PRISM", target = "_blank", style="text-decoration-line: underline;"), "database at a 800 m", tags$sup(2, .noWS = "before"), " resolution. Presently models are run only for areas west of the Cascades (approximately west of \u2013120.5\u00B0W). Please see a", a(href = "https://www.prism.oregonstate.edu", "tutorial", target = "_blank", style="text-decoration-line: underline;"), "for details on tool use and map interpretation. Expand the Introduction below to learn more about boxwood blight and risk models for this disease."))))),
+                     p("The boxwood blight infection risk mapping tool uses gridded climate data to calculate the risk of boxwood being infected by boxwood blight in western Oregon and Washington. Three day and four day forecasts of infection risk are available, as well as a map of cumulative risk (Jan 1 to date of four day forecast). Climate data are derived from the ", a(href = "https://www.prism.oregonstate.edu", "PRISM", target = "_blank", style="text-decoration-line: underline;"), "database at a 800 m", tags$sup(2, .noWS = "before"), " resolution. Presently models are run only for areas west of the Cascades (approximately west of \u2013120.5\u00B0W). Please see a", a(href = "BOXB_webapp_tutorial.pdf", "tutorial", target = "_blank", style="text-decoration-line: underline;"), "for details on tool use and map interpretation. Expand the Introduction below to learn more about boxwood blight and risk models for this disease."))))),
       
       # Background info 
       fluidRow(
@@ -392,9 +426,9 @@ ui <- fluidPage(
             fluidRow(
               style = "font-size:19px;",
               column(width = 2, align = "center", style='padding:0px;font-size:14px;',
-                     img(src = "https://raw.githubusercontent.com/bbarker505/BOXB-webapp/main/images/boxb-infected-shrubs.png", width = "155px", style = "max-height: 240px;"),
-                     img(src = "https://raw.githubusercontent.com/bbarker505/BOXB-webapp/main/images/boxb-infected-leaves.png", width = "155px", style = "max-height: 240px;"),
-                     img(src = "https://raw.githubusercontent.com/bbarker505/BOXB-webapp/main/images/boxb-infected-stems.png", width = "155px", style = "max-height: 240px;")),
+                     img(src = "boxb-infected-shrubs.png", width = "155px", style = "max-height: 240px;"),
+                     img(src = "boxb-infected-leaves.png", width = "155px", style = "max-height: 240px;"),
+                     img(src = "boxb-infected-stems.png", width = "155px", style = "max-height: 240px;")),
               column(width = 10, offset = 0, 
                      p(strong("Introduction: "), "Boxwood blight caused by the fungus ", em("Calonectria pseudonaviculata"), " can result in defoliation, decline, and death of susceptible varieties of boxwood, including most varieties of ", em("Buxus sempervirens"), " such as \u0022Suffruticosa\u0022  (English boxwood) and \u0022Justin Brouwers\u0022. Images show diagnostic symptoms of boxwood blight including", strong("(A)"),  "defoliation,", strong("(B)"), "leaf spots, and", strong("(C)"), "black streaks on stems (courtesy of Chuan Hong). The fungus has been detected at several locations (mostly in nurseries) in at least six different counties in Oregon and is thought to be established in some areas. Previous", a(href = "https://doi.org/10.3390/biology11060849", "research", target = "_blank", style="text-decoration-line: underline;"), "indicates that western Oregon and Washington have highly suitable climates for establishment of", em("C. pseudonaviculata"),  ". Tools are therefore needed to inform growers and gardeners about when environmental conditions are conducive to boxwood blight infection and establishment."),
                      p("Generally, it should be very humid or raining and at moderately warm temperatures (60\u201385\u00B0F) for a couple days for boxwood blight infection risk to be high. An inoculum source must be present nearby for infection to occur. Overhead irrigation facilitates outbreaks because it creates higher relative humidity and exposes leaf surfaces to longer periods of leaf wetness. For more information on preventing and managing boxwood blight, see the ", a(href = " https://pnwhandbooks.org/plantdisease/host-disease/boxwood-buxus-spp-boxwood-blight", "Pacific Northwest Pest Management Handbook", target = "_blank", style="text-decoration-line: underline;"), " and a ", a(href = " https://www.pubs.ext.vt.edu/content/dam/pubs_ext_vt_edu/PPWS/PPWS-29/PPWS-29-pdf.pdf", "publication", target = "_blank", style="text-decoration-line: underline;"),"by Virginia Cooperative Extension."),
@@ -488,8 +522,9 @@ ui <- fluidPage(
                  column(width = 12, uiOutput("coords_outside"))),
         
         # Risk maps
+        # Spinner icon is there until map loads
         fluidRow(style = "padding-left:15px;",
-                 column(width = 12, uiOutput("risk_map"))),
+                 column(width = 12, uiOutput("risk_map") %>% withSpinner(color="#0dc5c1"))),
         
         # Acknowledgements
         fluidRow(style="padding-left:15px;margin-top:1.5em;font-size:19px;",
@@ -508,16 +543,16 @@ ui <- fluidPage(
         # Logos
         fluidRow(
           column(width = 3, align = "center", offset = 0,
-                 img(src = "https://raw.githubusercontent.com/bbarker505/BOXB-webapp/main/images/OIPMC.png", width = "75%", style = "max-width: 200px;")),
+                 img(src = "OIPMC.png", width = "75%", style = "max-width: 200px;")),
           column(width = 3, align = "center", offset = 0,
-                 img(src = "https://raw.githubusercontent.com/bbarker505/BOXB-webapp/main/images/Oregon-Department-of-Agriculture-logo.png", width = "75%", style = "max-width: 200px;")),
+                 img(src = "Oregon-Department-of-Agriculture-logo.png", width = "75%", style = "max-width: 200px;")),
           column(width = 3, align = "center", offset = 0,
-                 img(src = "https://raw.githubusercontent.com/bbarker505/BOXB-webapp/main/images/PRISM.png", width = "55%", style = "max-width: 200px;")),
+                 img(src = "PRISM.png", width = "55%", style = "max-width: 200px;")),
           column(width = 3, align = "center", offset = 0,
-                 img(src = "https://raw.githubusercontent.com/bbarker505/BOXB-webapp/main/images/usda-logo_original.png", width = "45%", style = "max-width: 200px;max-height: 100px;")))))))
+                 img(src = "usda-logo_original.png", width = "45%", style = "max-width: 200px;max-height: 100px;")))))))
 
 # Server ----
-server <- function(input, output) {
+server <- function(input, output, session) {
   
   # Resize map widths based on whether map for last year is selected
   # 100%: maps (both years) span entire column width (=12)
@@ -573,126 +608,80 @@ server <- function(input, output) {
                         "Three Day" = "Three Day Risk",
                         "Four Day" = "Four Day Risk")
     
-    # Color palettes
-    # Long-term risk (total for year) uses a continuous scale
-    # Using same scale for both maps requires using scales for the 
-    # raster with the highest risk value (i.e. greatest range of values)
-    both_rasters <- c(raster_current, raster_lastYr)
-    max_rast <- app(both_rasters, max)
-    #max_rast <- round(app(both_rasters, max))
-    
-    # Convert rasters to factor to categorical only for 3- and 4-day risk
-    # Also define palettes for categorical maps
-    # Legend title is used to define the type of risk map (short-term vs. cumulative)
-    max_rast <- FactorizeRast(max_rast, lgd_title)
-    raster_current <- FactorizeRast(raster_current, lgd_title)
-    raster_lastYr <- FactorizeRast(raster_lastYr, lgd_title)
-    
-    # Need to know number of unique values for color ramp
-    ncols <-  length(unique(levels(max_rast)[[1]]$risk))
-    
-    # Palette depends on risk map type
-    # Maximum of 5 colors for 3- and 4-day vs. 11 colors for cumulative
-    # Green-yellow-red
-    if (grepl("Day", lgd_title)) {
-      pal_risk <- colorRampPalette(c("#009405", "#ffff00", "#da9101", "#c30010"))(5)
-    } else {
-      pal_risk <- colorRampPalette(c("#009405", "#ffff00", "#da9101", "#c30010"))(11)
-    }
-    
-    # Retain needed levels only
-    pal_risk <- pal_risk[1:ncols]
-    
-    # Define raster attributes so that legend shows values correctly
-    unique_vals_current <- unique(levels(raster_current)[[1]]$risk)
-    unique_vals_lastYr <- unique(levels(raster_lastYr)[[1]]$risk)
-    pal_risk_current <- pal_risk[1:length(unique_vals_current)]
-    pal_risk_lastYr <- pal_risk[1:length(unique_vals_lastYr)]
-    
     # Render maps ----
     
-    # Produce leaflet map using RiskMap function
-    # This map is used only if an address hasn't been submitted
-    output$risk_map <- renderUI({ 
-      RiskMap(input, raster_current, raster_lastYr, title_current, title_lastYr, 
-              lgd_title, pal_risk_current, pal_risk_lastYr, unique_vals_current, 
-              unique_vals_lastYr, map_width, address_submit = 0, coords = NA) 
-    })
-    
     # Below updates maps each time a new address (location) is submitted
-    # Not sure else how to do this besides having a nested "observeEvent"
-    # First determine whether address box is checked
-    address_checked <- reactive({
-      input$address_checkbox
-    })
-    
-    # If address box is checked, then the map will react when an address is
-    # submitted by zooming to that location (unless it couldn't be geocoded). 
-    # If address box is unchecked, the map will zoom back out to western OR and WA
-    observeEvent(address_checked(), {
+    observeEvent(input$address_submit, {
       
-      if (address_checked()) {
+      #### * Geocode location ####
+      # Submitted location
+      location <- input$address
+      
+      # Geocode the location
+      coords <- tribble(~addr, location) %>%
+        geocode(addr, method = "mapquest")
+      
+      #### * Address submit errors ####
+      output$coords_error <- renderText({
         
-        observeEvent(input$address_submit, {
+        # Error: empty location submission ("")
+        if (coords$addr == "") {
+          return("Please enter a location.")
           
-          #### * Geocode location ####
-          # Submitted location
-          location <- input$address
+          # Error: a location was entered but could not be geocoded
+        } else if (is.na(coords$lat & coords$addr != "")) {
+          return("Sorry, this location could not be geocoded.")
           
-          # Geocode the location
-          coords <- tribble(~addr, location) %>%
-            geocode(addr, method = "mapquest")
+          # Error: a location was valid but falls outside of risk forecast bounds
+        } else if (!is.na(coords$lat)) {
+          # Determine whether there are predictions for the location
+          xy <- data.frame(x = coords$long, y = coords$lat)
+          rast_val <- terra::extract(raster_current, xy)[1,2]
           
-          #### * Address submit errors ####
-          output$coords_error <- renderText({
-            
-            # Error: empty location submission ("")
-            if (coords$addr == "") {
-              return("Please enter a location.")
-              
-              # Error: a location was entered but could not be geocoded
-            } else if (is.na(coords$lat & coords$addr != "")) {
-              return("Sorry, this location could not be geocoded.")
-              
-              # Error: a location was valid but falls outside of risk forecast bounds
-            } else if (!is.na(coords$lat)) {
-              # Determine whether there are predictions for the location
-              xy <- data.frame(x = coords$long, y = coords$lat)
-              rast_val <- terra::extract(raster_current, xy)[1,2]
-              
-              # Error message if rast value is NA
-              if (is.na(rast_val)) {
-                return("No risk forecast for this location.")
-              }
-              
-            }
-            
-          })
-          
-          # Risk map zooms to location only if coordinates are not NA (submitted=1)
-          if (!is.na(coords$lat)) {
-            submitted <- 1 
-          } else {
-            submitted <- 0
+          # Error message if rast value is NA
+          if (is.na(rast_val)) {
+            return("No risk forecast for this location.")
           }
           
-          # Produce leaflet map using RiskMap function
-          output$risk_map <- renderUI({ 
-            RiskMap(input, raster_current, raster_lastYr, title_current, title_lastYr, 
-                    lgd_title, pal_risk_current, pal_risk_lastYr, unique_vals_current, unique_vals_lastYr,
-                    map_width, address_submit = submitted, coords = coords) 
-          })
-          
-        })
+        }
         
-        # Zoom back out to western OR and WA if address box is unchecked
+      })
+      
+      # Risk map zooms to location only if coordinates are not NA (submitted=1)
+      if (!is.na(coords$lat)) {
+        submitted <- 1 
       } else {
+        submitted <- 0
+      }
+      
+      # Produce leaflet map using RiskMap function
+      output$risk_map <- renderUI({ 
+        RiskMap(input, raster_current, raster_lastYr, title_current, title_lastYr, 
+                lgd_title, map_width, address_submit = submitted, coords = coords) 
+        
+      })
+    })
+    
+    # Clears out any error messages and entries from previous submission, and
+    # zooms back out to western OR and WA if box is unchecked
+    observeEvent(input$address_checkbox, {
+      
+      # Clear out any error messages from previous entry
+      output$coords_error <- renderText({
+        return("")
+      })
+      
+      # Clear out any text input from previous entry
+      updateTextInput(session = session, inputId = "address", value = "")
+      
+      if (input$address_checkbox == 0) {
+        # Zoom back out to western OR and WA 
         output$risk_map <- renderUI({ 
           RiskMap(input, raster_current, raster_lastYr, title_current, title_lastYr, 
-                  lgd_title, pal_risk_current, pal_risk_lastYr, unique_vals_current, 
-                  unique_vals_lastYr, map_width, address_submit = 0, coords = NA) 
+                  lgd_title, map_width, address_submit = 0, coords = NA) 
         })
       }
+      
     })
     
   })
