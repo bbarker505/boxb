@@ -38,8 +38,8 @@ current_date <- Sys.Date()
 current_year <- as.numeric(format(current_date, format = "%Y"))
 #current_year <- 2021
 #current_date <- as.Date(paste0("Jun-11-", current_year), format = "%b-%d-%Y") 
-#last_year <- current_year - 1
-#lastYr_date <- as.Date(gsub(current_year, last_year, current_date))
+last_year <- current_year - 1
+lastYr_date <- as.Date(gsub(current_year, last_year, current_date))
 
 # Spatial features to add to map
 # State boundaries
@@ -193,8 +193,8 @@ RiskMap <- function(input, rast, pal, map_title, lgd_title, unique_vals, last_ye
 fls <- c("Cum_Inf_Risk_3day.tif", "Cum_Inf_Risk_4day.tif","Cum_Inf_Risk_Total.tif")
 #outdir_current <- paste0("C:/Users/barkebri/Documents/Species/BOXB/Web_app/Rasters/ref_6-11/", current_year)
 #outdir_lastYr <- paste0("C:/Users/barkebri/Documents/Species/BOXB/Web_app/Rasters/ref_6-11/", last_year)
-outdir_current <- "/srv/shiny-server/BOXB-webapp/rasters/today_maps"
-outdir_lastYr <-  "/srv/shiny-server/BOXB-webapp/rasters/today_lastYr_maps"
+outdir_current <- "/srv/shiny-server/BOXB-webapp/rasters/today_maps/Misc_output"
+outdir_lastYr <-  "/srv/shiny-server/BOXB-webapp/rasters/today_lastYr_maps/Misc_output"
 
 # Model outputs for current run 
 rasts_current <- map(
