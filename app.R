@@ -34,12 +34,12 @@ Sys.setenv(MAPQUEST_API_KEY = "5vjLXIpEjMHpANFr4Ok2BNxpuQPrsGQP")
 #### * Dates 
 # Used in map titles
 # Current dates and year
-#current_date <- Sys.Date()
-#current_year <- as.numeric(format(current_date, format = "%Y"))
-current_year <- 2021
-current_date <- as.Date(paste0("Jun-11-", current_year), format = "%b-%d-%Y") 
-last_year <- current_year - 1
-lastYr_date <- as.Date(gsub(current_year, last_year, current_date))
+current_date <- Sys.Date()
+current_year <- as.numeric(format(current_date, format = "%Y"))
+#current_year <- 2021
+#current_date <- as.Date(paste0("Jun-11-", current_year), format = "%b-%d-%Y") 
+#last_year <- current_year - 1
+#lastYr_date <- as.Date(gsub(current_year, last_year, current_date))
 
 # Spatial features to add to map
 # State boundaries
