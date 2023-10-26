@@ -25,7 +25,7 @@ library(bslib)
 library(fresh) # Color theme for web app page
 library(htmlwidgets)
 
-# Last update - 10/24/23 
+# Last update - 10/25/23 
 
 ## Setup ----
 
@@ -245,6 +245,8 @@ mytheme <- create_theme(
 #### * Fluid page layout ####
 ui <- fluidPage(
   
+  useShinyjs(), # For making error message disappear with "delay"
+  
   tags$style(".container-fluid {
              background-color: #d4ddc0;
              }"),
@@ -257,8 +259,6 @@ ui <- fluidPage(
                  margin-left: 15px;
                  font-family: 'Source Sans Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif;"),
              windowTitle = "Boxwood Blight Risk Mapping"),
-  
-  #shinybrowser::detect(),
   
   dashboardPage(
     
@@ -304,9 +304,9 @@ ui <- fluidPage(
             fluidRow(
               style = "font-size:19px;",
               column(width = 2, align = "center", style='padding:0px;font-size:14px;',
-                     img(src = "boxb-infected-shrubs.png", width = "155px", style = "max-height: 240px;"),
-                     img(src = "boxb-infected-leaves.png", width = "155px", style = "max-height: 240px;"),
-                     img(src = "boxb-infected-stems.png", width = "160px", style = "max-height: 240px;")),
+                     img(src = "https://raw.githubusercontent.com/bbarker505/BOXB-webapp/main/images/boxb-infected-shrubs.png", width = "155px", style = "max-height: 240px;"),
+                     img(src = "https://raw.githubusercontent.com/bbarker505/BOXB-webapp/main/images/boxb-infected-leaves.png", width = "155px", style = "max-height: 240px;"),
+                     img(src = "https://raw.githubusercontent.com/bbarker505/BOXB-webapp/main/images/boxb-infected-stems.png", width = "160px", style = "max-height: 240px;")),
               column(width = 10, offset = 0, 
                      p(strong("Introduction: "), "Boxwood blight caused by the fungus ", em("Calonectria pseudonaviculata"), " can result in defoliation, decline, and death of susceptible varieties of boxwood, including most varieties of ", em("Buxus sempervirens"), " such as \u0022Suffruticosa\u0022  (English boxwood) and \u0022Justin Brouwers\u0022. Images show diagnostic symptoms of boxwood blight including", strong("(A)"),  "defoliation,", strong("(B)"), "leaf spots, and", strong("(C)"), "black streaks on stems (courtesy of Chuan Hong). The fungus has been detected at several locations (mostly in nurseries) in at least six different counties in Oregon and is thought to be established in some areas. Previous", a(href = "https://doi.org/10.3390/biology11060849", "research", target = "_blank", style="text-decoration-line: underline;"), "indicates that western Oregon and Washington have highly suitable climates for establishment of", em("C. pseudonaviculata"),  ". Tools are therefore needed to inform growers and gardeners about when environmental conditions are conducive to boxwood blight infection and establishment."),
                      p("Generally, it should be very humid or raining and at moderately warm temperatures (60\u201385\u00B0F) for a couple days for boxwood blight infection risk to be high. An inoculum source must be present nearby for infection to occur. Overhead irrigation facilitates outbreaks because it creates higher relative humidity and exposes leaf surfaces to longer periods of leaf wetness. For more information on preventing and managing boxwood blight, see the ", a(href = " https://pnwhandbooks.org/plantdisease/host-disease/boxwood-buxus-spp-boxwood-blight", "Pacific Northwest Pest Management Handbook", target = "_blank", style="text-decoration-line: underline;"), " and a ", a(href = " https://www.pubs.ext.vt.edu/content/dam/pubs_ext_vt_edu/PPWS/PPWS-29/PPWS-29-pdf.pdf", "publication", target = "_blank", style="text-decoration-line: underline;"),"by Virginia Cooperative Extension."),
@@ -394,10 +394,14 @@ ui <- fluidPage(
             )),
         
         # Risk map value for geocoded address
-        fluidRow(style="padding-left:15px;margin-top:1em;font-size:19px;color:#f56954;",
-                 column(width = 12, uiOutput("empty_address_error")),
-                 column(width = 12, uiOutput("coords_error")),
-                 column(width = 12, uiOutput("coords_outside"))),
+        fluidRow(style="padding-left:15px;margin-top:1em;font-size:19px",
+                 conditionalPanel(
+                   condition = "input.address_checkbox == 1",
+                   # The "zooming to location" message is not fast enough
+                   #column(style ="color:#000000;",
+                   #     width = 12, uiOutput("search_message")),
+                   column(style ="color:#f56954;",
+                          width = 12, uiOutput("error_message")))),
         
         # Risk maps
         fluidRow(style = "padding-left:15px;padding-right:15px;",
@@ -425,13 +429,13 @@ ui <- fluidPage(
         # Logos
         fluidRow(
           column(width = 3, align = "center", offset = 0,
-                 img(src = "OIPMC.png", width = "75%", style = "max-width: 200px;")),
+                 img(src = "https://raw.githubusercontent.com/bbarker505/BOXB-webapp/main/images/OIPMC.png", width = "75%", style = "max-width: 200px;")),
           column(width = 3, align = "center", offset = 0,
-                 img(src = "Oregon-Department-of-Agriculture-logo.png", width = "75%", style = "max-width: 200px;")),
+                 img(src = "https://raw.githubusercontent.com/bbarker505/BOXB-webapp/main/images/Oregon-Department-of-Agriculture-logo.png", width = "75%", style = "max-width: 200px;")),
           column(width = 3, align = "center", offset = 0,
-                 img(src = "PRISM.png", width = "55%", style = "max-width: 200px;")),
+                 img(src = "https://raw.githubusercontent.com/bbarker505/BOXB-webapp/main/images/PRISM.png", width = "55%", style = "max-width: 200px;")),
           column(width = 3, align = "center", offset = 0,
-                 img(src = "usda-logo_original.png", width = "45%", style = "max-width: 200px;max-height: 100px;")))))))
+                 img(src = "https://raw.githubusercontent.com/bbarker505/BOXB-webapp/main/images/usda-logo_original.png", width = "45%", style = "max-width: 200px;max-height: 100px;")))))))
 
 # Server ----
 server <- function(input, output, session) {
@@ -509,23 +513,42 @@ server <- function(input, output, session) {
     #### * Render Leaflet maps ####
     # Produce and render maps
     # All subsequent modifications of maps below use "LeafletProxy"
-    # (this function modifies the map that has already been rendered)
-    
+    # (this function modifies the map that has already been rendered.
     # Current year map
     output$riskmap1 <- renderLeaflet({ 
       RiskMap(input, raster_current, pal_risk_current, title_current,  
               lgd_title, unique_vals_current, last_year = 0) 
     })
-    # Last year map
+    
+    # This code block was supposed to ensure that the risk map for last year is in sync
+    # (same bounds/zoom) with current year map when map type is switched
+    # Otherwise, sometimes the map is zoomed out to entire region until the
+    # current map is touched.
+    # Doesn't work when checkbox clicked before current map loads.
+    # Last year map - overwritten once map bounds from current map is obtained
     output$riskmap2 <- renderLeaflet({ 
       RiskMap(input, raster_lastYr, pal_risk_lastYr, title_lastYr,  
-              lgd_title, unique_vals_lastYr, last_year = 1)
+              lgd_title, unique_vals_lastYr, last_year = 1)  
     })
+    
+    # Re-do map so bounds are same as current map
+    observeEvent(input$riskmap1_bounds, {
+      
+      bounds <- input$riskmap1_bounds
+      if (!is.null(bounds)) {
+        # Last year map
+        output$riskmap2 <- renderLeaflet({ 
+          RiskMap(input, raster_lastYr, pal_risk_lastYr, title_lastYr,  
+                  lgd_title, unique_vals_lastYr, last_year = 1)  %>%
+            fitBounds(bounds$west, bounds$south, bounds$east, bounds$north)
+        })
+      }
+      # Must be TRUE or map will be rendered anytime current map is touched
+    }, once = TRUE) 
     
     #### * Bounds: current year map ####
     # Observe bounds of current year map in order to:
     # 1) Keep the bounds from resetting when risk map type changes
-    # 2) Sync last year map with current year map
     observeEvent(input$riskmap1_bounds, {
       
       # Map zoom can't be entire area (level 6) or get weird behavior
@@ -544,19 +567,28 @@ server <- function(input, output, session) {
     # Below updates maps each time a new address (location) is submitted
     observeEvent(input$address_submit, {
       
+      # Search message
+      # Does not appear if coordinates are valid because maps load so quickly 
+      # Maybe fix this later
+      # output$search_message <- renderText({
+      #   "Zooming to location"
+      # })
+      # delay(2000, output$search_message <- renderText(""))
+      
       # Submitted location
       location <- input$address
       # Geocode the location
       coords <- tribble(~addr, location) %>%
         geocode(addr, method = "mapquest")
+      
       # Address submit errors
-      output$coords_error <- renderText({
+      output$error_message <- renderText({
         # Error: empty location submission ("")
         if (coords$addr == "") {
-          return("Please enter a location.")
+          "Please enter a location."
           # Error: a location was entered but could not be geocoded
         } else if (is.na(coords$lat & coords$addr != "")) {
-          return("Sorry, this location could not be geocoded.")
+          "Sorry, this location could not be geocoded."
           # Error: a location was valid but falls outside of risk forecast bounds
         } else if (!is.na(coords$lat)) {
           # Determine whether there are predictions for the location
@@ -564,11 +596,14 @@ server <- function(input, output, session) {
           rast_val <- terra::extract(raster_current, xy)[1,2]
           # Error message if rast value is NA
           if (is.na(rast_val)) {
-            return("No risk forecast for this location.")
+            "No risk forecast for this location."
           }
         }
         
       })
+      
+      # Make message disappear (requires "shinyjs")
+      delay(4000, output$error_message <- renderText(""))
       
       # If input address doesn't return NULL coordinates
       # Add circle markers and zoom to location
@@ -576,26 +611,44 @@ server <- function(input, output, session) {
         
         if (coords$lat > 41.9800 & coords$lat < 49.1664 & 
             coords$long > -127 & coords$long < -120.5) {
-          # Current year map
+          
+          output$search_message <- renderText({
+            "Zooming to location"
+          })
+          delay(2000, output$search_message <- renderText(""))
+          
+          # Current year map - can modify rendered map using "leafletProxy"
+          # Decided to not show marker for last year map - not necessary
           leafletProxy("riskmap1") %>%
             clearMarkers() %>% # Remove circle markers from last submission
+            addRasterImage(raster_current, color = pal_risk_current, opacity = 0.5,
+                           group = "Value", layerId = "Value") %>%
             addImageQuery(raster(raster_current), project = TRUE, prefix = "", digits = 0,
                           layerId = "Value", position = "topleft", type = "mousemove") %>%
             addCircleMarkers(lat = coords$lat, lng = coords$long,
                              opacity = 0.75, color = "cyan", 
-                             weight = 3, fill = FALSE) %>%
+                             weight = 3, layerId = "Value", fill = FALSE) %>%
             setView(lng = coords$long, lat = coords$lat, zoom = 11) # Zooms to area
           
-          # Last year ("setView" not needed because it syncs with current year map)
-          leafletProxy("riskmap2") %>%
-            clearMarkers() %>% 
-            addImageQuery(raster(raster_lastYr), project = TRUE, prefix = "", digits = 0,
-                          layerId = "Value (last year)", position = "topleft", type = "mousemove") %>%
-            addCircleMarkers(lat = coords$lat, lng = coords$long,
-                             opacity = 0.75, color = "cyan", 
-                             weight = 3, fill = FALSE)
         } 
       }
+      
+      # If this code chunk is absent, last year map will be zoomed to full extent.
+      observeEvent(input$lastYr_checkbox, {
+        
+        if (!is.na(coords$lat)) {
+          # Render map
+          output$riskmap2 <- renderLeaflet({
+            RiskMap(input, raster_lastYr, pal_risk_lastYr, title_lastYr,
+                    lgd_title, unique_vals_lastYr, last_year = 1) %>%
+              addImageQuery(raster(raster_lastYr), project = TRUE, prefix = "", digits = 0,
+                            layerId = "Value (last year)", position = "topleft", type = "mousemove") %>%
+              setView(lng = coords$long, lat = coords$lat, zoom = 11)
+          })
+        }
+        
+      }, once = TRUE) # Don't need to render a new map on each click
+      
       
     })
     
@@ -603,14 +656,13 @@ server <- function(input, output, session) {
     # Clears out any error messages and entries from previous submission,
     # and zooms back out to western OR and WA if box is unchecked
     observeEvent(input$address_checkbox, {
-      # Clear out any error messages from previous entry
-      output$coords_error <- renderText({
-        return("")
-      })
+      
+      # Clear out previous submission text
+      if (input$address_checkbox == 0) {
+        updateTextInput(session = session, inputId = "address", value = "")
+      }
       
       if (input$address_checkbox == 0) {
-        # Clear out any text input from previous entry
-        updateTextInput(session = session, inputId = "address", value = "")
         # Zoom back out to western OR and WA and clear location markers
         leafletProxy("riskmap1")  %>%
           fitBounds(lng1 = -127, lat1 = 41.98, lng2 = -120.5, lat2 = 49.1664) %>%
@@ -618,6 +670,7 @@ server <- function(input, output, session) {
           addImageQuery(raster(raster_current), project = TRUE, prefix = "", digits = 0,
                         layerId = "Value", position = "topleft", type = "mousemove") 
         leafletProxy("riskmap2") %>%
+          fitBounds(lng1 = -127, lat1 = 41.98, lng2 = -120.5, lat2 = 49.1664) %>%
           clearMarkers() %>% 
           addImageQuery(raster(raster_lastYr), project = TRUE, prefix = "", digits = 0,
                         layerId = "Value (last year)", position = "topleft", type = "mousemove") 
@@ -636,6 +689,7 @@ server <- function(input, output, session) {
         fitBounds(bounds2$west, bounds2$south, bounds2$east, bounds2$north)
     }
   })
+  
 }
 
 # Run app ----
