@@ -305,9 +305,9 @@ ui <- fluidPage(
             fluidRow(
               style = "font-size:19px;",
               column(width = 2, align = "center", style='padding:0px;font-size:14px;',
-                     img(src = "https://raw.githubusercontent.com/bbarker505/BOXB-webapp/main/images/boxb-infected-shrubs.png", width = "155px", style = "max-height: 240px;"),
-                     img(src = "https://raw.githubusercontent.com/bbarker505/BOXB-webapp/main/images/boxb-infected-leaves.png", width = "155px", style = "max-height: 240px;"),
-                     img(src = "https://raw.githubusercontent.com/bbarker505/BOXB-webapp/main/images/boxb-infected-stems.png", width = "160px", style = "max-height: 240px;")),
+                     img(src = "boxb-infected-shrubs.png", width = "155px", style = "max-height: 240px;"),
+                     img(src = "boxb-infected-leaves.png", width = "155px", style = "max-height: 240px;"),
+                     img(src = "boxb-infected-stems.png", width = "160px", style = "max-height: 240px;")),
               column(width = 10, offset = 0, 
                      p(strong("Introduction: "), "Boxwood blight caused by the fungus ", em("Calonectria pseudonaviculata"), " can result in defoliation, decline, and death of susceptible varieties of boxwood, including most varieties of ", em("Buxus sempervirens"), " such as \u0022Suffruticosa\u0022  (English boxwood) and \u0022Justin Brouwers\u0022. Images show diagnostic symptoms of boxwood blight including", strong("(A)"),  "defoliation,", strong("(B)"), "leaf spots, and", strong("(C)"), "black streaks on stems (courtesy of Chuan Hong). The fungus has been detected at several locations (mostly in nurseries) in at least six different counties in Oregon and is thought to be established in some areas. Previous", a(href = "https://doi.org/10.3390/biology11060849", "research", target = "_blank", style="text-decoration-line: underline;"), "indicates that western Oregon and Washington have highly suitable climates for establishment of", em("C. pseudonaviculata"),  ". Tools are therefore needed to inform growers and gardeners about when environmental conditions are conducive to boxwood blight infection and establishment."),
                      p("Generally, it should be very humid or raining and at moderately warm temperatures (60\u201385\u00B0F) for a couple days for boxwood blight infection risk to be high. An inoculum source must be present nearby for infection to occur. Overhead irrigation facilitates outbreaks because it creates higher relative humidity and exposes leaf surfaces to longer periods of leaf wetness. For more information on preventing and managing boxwood blight, see the ", a(href = " https://pnwhandbooks.org/plantdisease/host-disease/boxwood-buxus-spp-boxwood-blight", "Pacific Northwest Pest Management Handbook", target = "_blank", style="text-decoration-line: underline;"), " and a ", a(href = " https://www.pubs.ext.vt.edu/content/dam/pubs_ext_vt_edu/PPWS/PPWS-29/PPWS-29-pdf.pdf", "publication", target = "_blank", style="text-decoration-line: underline;"),"by Virginia Cooperative Extension."),
@@ -430,13 +430,13 @@ ui <- fluidPage(
         # Logos
         fluidRow(
           column(width = 3, align = "center", offset = 0,
-                 img(src = "https://raw.githubusercontent.com/bbarker505/BOXB-webapp/main/images/OIPMC.png", width = "75%", style = "max-width: 200px;")),
+                 img(src = "OIPMC.png", width = "75%", style = "max-width: 200px;")),
           column(width = 3, align = "center", offset = 0,
-                 img(src = "https://raw.githubusercontent.com/bbarker505/BOXB-webapp/main/images/Oregon-Department-of-Agriculture-logo.png", width = "75%", style = "max-width: 200px;")),
+                 img(src = "Oregon-Department-of-Agriculture-logo.png", width = "75%", style = "max-width: 200px;")),
           column(width = 3, align = "center", offset = 0,
-                 img(src = "https://raw.githubusercontent.com/bbarker505/BOXB-webapp/main/images/PRISM.png", width = "55%", style = "max-width: 200px;")),
+                 img(src = "PRISM.png", width = "55%", style = "max-width: 200px;")),
           column(width = 3, align = "center", offset = 0,
-                 img(src = "https://raw.githubusercontent.com/bbarker505/BOXB-webapp/main/images/usda-logo_original.png", width = "45%", style = "max-width: 200px;max-height: 100px;")))))))
+                 img(src = "usda-logo_original.png", width = "45%", style = "max-width: 200px;max-height: 100px;")))))))
 
 # Server ----
 server <- function(input, output, session) {
