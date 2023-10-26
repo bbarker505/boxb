@@ -21,6 +21,7 @@ library(shinyWidgets)
 library(shinydashboard)
 library(shinyBS) # Info tabs next to risk map menu items
 library(shinycssloaders) # "Loading" animation for risk maps (waiting)
+library(shinyjs) # For "delay" function to causes error messages to disappear
 library(bslib)
 library(fresh) # Color theme for web app page
 library(htmlwidgets)
