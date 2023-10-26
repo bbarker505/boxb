@@ -169,7 +169,7 @@ RiskMap <- function(input, rast, pal, map_title, lgd_title, unique_vals, last_ye
     addPolylines(data = county_sf, group = "Counties", opacity = 0.15, 
                  color = "black", weight = 1) %>%
     # Max bounds prevents zooming out past western OR and WA
-    # setMaxBounds(lng1 = -127, lat1 = 41.98, lng2 = -120.5, lat2 = 49.1664) %>%
+    setMaxBounds(lng1 = -127, lat1 = 41.98, lng2 = -120.5, lat2 = 49.1664) %>%
     # Map title
     addControl(map_title, position = "bottomleft", className = "map-title") %>%
     # Shows map coordinates as mouse is moved over map
@@ -290,7 +290,7 @@ ui <- fluidPage(
               style = "font-size:19px;",
               column(width = 12, 
                      offset = 0, 
-                     p("The boxwood blight infection risk mapping tool uses gridded climate data to calculate the risk of boxwood being infected by boxwood blight in western Oregon and Washington. Three day and four day forecasts of infection risk are available, as well as a map of cumulative risk (Jan 1 to date of four day forecast). Climate data are derived from the ", a(href = "https://www.prism.oregonstate.edu", "PRISM", target = "_blank", style="text-decoration-line: underline;"), "database at a 800 m", tags$sup(2, .noWS = "before"), " resolution. Presently models are run only for areas west of the Cascades (approximately west of \u2013120.5\u00B0W). Please see a", a(href = "https://www.prism.oregonstate.edu", "tutorial", target = "_blank", style="text-decoration-line: underline;"), "for details on tool use and map interpretation. Expand the Introduction below to learn more about boxwood blight and risk models for this disease."))))),
+                     p("The boxwood blight infection risk mapping tool uses gridded climate data to calculate the risk of boxwood being infected by boxwood blight in western Oregon and Washington. Three day and four day forecasts of infection risk are available, as well as a map of cumulative risk (Jan 1 to date of four day forecast). Climate data are derived from the ", a(href = "https://www.prism.oregonstate.edu", "PRISM", target = "_blank", style="text-decoration-line: underline;"), "database at a 800 m", tags$sup(2, .noWS = "before"), " resolution. Presently models are run only for areas west of the Cascades (approximately west of \u2013120.5\u00B0W). Please see a", a(href = "BOXB_webapp_tutorial.pdf", "tutorial", target = "_blank", style="text-decoration-line: underline;"), "for details on tool use and map interpretation. Expand the Introduction below to learn more about boxwood blight and risk models for this disease."))))),
       
       # Background info 
       fluidRow(
