@@ -26,7 +26,8 @@ library(bslib)
 library(fresh) # Color theme for web app page
 library(htmlwidgets)
 
-# Last update - 10/25/23 
+# Last update - 11/2/23 
+# Updated code so that last year map wouldn't zoom if coords fell outside W OR/WA
 
 ## Setup ----
 
@@ -638,14 +639,19 @@ server <- function(input, output, session) {
       observeEvent(input$lastYr_checkbox, {
         
         if (!is.na(coords$lat)) {
-          # Render map
-          output$riskmap2 <- renderLeaflet({
-            RiskMap(input, raster_lastYr, pal_risk_lastYr, title_lastYr,
-                    lgd_title, unique_vals_lastYr, last_year = 1) %>%
-              addImageQuery(raster(raster_lastYr), project = TRUE, prefix = "", digits = 0,
-                            layerId = "Value (last year)", position = "topleft", type = "mousemove") %>%
-              setView(lng = coords$long, lat = coords$lat, zoom = 11)
-          })
+          
+          if (coords$lat > 41.9800 & coords$lat < 49.1664 & 
+              coords$long > -127 & coords$long < -120.5) {
+            # Render map
+            output$riskmap2 <- renderLeaflet({
+              RiskMap(input, raster_lastYr, pal_risk_lastYr, title_lastYr,
+                      lgd_title, unique_vals_lastYr, last_year = 1) %>%
+                addImageQuery(raster(raster_lastYr), project = TRUE, prefix = "", digits = 0,
+                              layerId = "Value (last year)", position = "topleft", type = "mousemove") %>%
+                setView(lng = coords$long, lat = coords$lat, zoom = 11)
+            })
+          }
+          
         }
         
       }, once = TRUE) # Don't need to render a new map on each click
