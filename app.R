@@ -611,7 +611,7 @@ server <- function(input, output, session) {
       # Add circle markers and zoom to location
       if (!is.na(coords$lat)) {
         
-        if (coords$lat > 41.9800 & coords$lat < 49.1664 & 
+        if (coords$lat > 41.98 & coords$lat < 49.1664 & 
             coords$long > -127 & coords$long < -120.5) {
           
           output$search_message <- renderText({
@@ -655,7 +655,6 @@ server <- function(input, output, session) {
         }
         
       }, once = TRUE) # Don't need to render a new map on each click
-      
       
     })
     
