@@ -43,14 +43,22 @@ current_year <- as.numeric(format(current_date, format = "%Y"))
 last_year <- current_year - 1
 lastYr_date <- as.Date(gsub(current_year, last_year, current_date))
 
-# Spatial features to add to map
+# Spatial features to add to map (all have CRS = WGS 84)
 # State boundaries
-state_sf <- st_read("./features/states_OR_WA.shp") %>%
-  st_transform(crs = 4326)
+state_sf <- st_read("./features/states_OR_WA.shp")
 
 # County boundaries
-county_sf <- st_read("./features/counties_OR_WA.shp") %>%
-  st_transform(crs = 4326)
+county_sf <- st_read("./features/counties_OR_WA.shp") 
+
+# Roads
+road_all_sf <- st_read("./features/roads_OR_WA.shp") 
+road_primary_sf <- filter(road_all_sf, MTFCC == "S1100")
+
+# Cities (keep only large cities)
+city_all_sf <- st_read("./features/all_cities_OR_WA.shp")
+city_small_sf <- filter(city_all_sf, popultn > 20000)
+city_major_sf <- filter(city_all_sf, popultn > 125000)
+city_huge_sf <- filter(city_all_sf, popultn  >= 250000)
 
 # Functions ----
 
@@ -74,55 +82,30 @@ RastImport <- function(file_name) {
 # Function to factorize a raster (translate numbers to a category)
 FactorizeRast <- function(r, type) {
   
-  # 3- and 4-day risk - four levels
-  if (grepl("Day", type)) {
-    
-    # Must recode raster because raster factorization doesn't work when 
-    # there are "duplicate" values (e.g., if 1.5 and 2 are both "High Risk"),
-    # and apparently it won't accept decimal values? This is strange.
-    r[r>=2] <- 4 # Values >2 are 5-8 lesions
-    r[r==1.5] <- 3 # Values of 1.5 are 1-6 lesions
-    r[r==1] <- 2 # Values of 1 are 1st infection susc. varieties
-    r[r==0.5] <- 1 # Values of 0.5 are low risk 
-    
-    # Unique values up to 4 ("High risk" is always >= 4)
-    vals <- unique(values(r))
-    vals <- vals[!is.na(vals)]
-    
-    #Levels
-    lvls <- data.frame(ID = vals) %>%
-      mutate(
-        risk = case_when(ID == 0 ~ "0: Very Low Risk",
-                         ID == 1 ~ "1: Low Risk",
-                         ID == 2 ~ "2: 1st Infec. Susc. Vars.",
-                         ID == 3 ~ "3: Up to 1-6 Lesions",
-                         ID == 4 ~ "4: Up to 5-18 Lesions")) %>%
-      arrange(ID)
-    
-    # Factorize raster
-    levels(r) <- lvls
-    
-    # Cumulative risk is only other option - cut values into bins of 5
-  } else {
-    # Values have to be rounded to factorize
-    r <- round(r)
-    # Unique raster values
-    vals <-  sort(unique(values(r, na.rm = TRUE)))
-    lvls <- data.frame(ID = vals, risk = vals) %>%
-      mutate(risk = case_when(risk <= 5 ~ "0-5", 
-                              risk > 5 & risk <= 10 ~ "6-10", 
-                              risk > 10 & risk <= 15 ~ "11-15", 
-                              risk > 15 & risk <= 20 ~ "16-20",
-                              risk > 20 & risk <= 25 ~ "21-25",
-                              risk > 25 & risk <= 30 ~ "26-30",
-                              risk > 30 & risk <= 35 ~ "31-35",
-                              risk > 35 & risk <= 40 ~ "36-40",
-                              risk > 40 & risk <= 45 ~ "41-45",
-                              risk > 45 & risk <= 50 ~ "46-50",
-                              risk > 50 ~ ">50"))
-    # Factorize raster
-    levels(r) <- lvls
-  }
+  # Must recode raster because raster factorization doesn't work when 
+  # there are "duplicate" values (e.g., if 1.5 and 2 are both "High Risk"),
+  # and apparently it won't accept decimal values? This is strange.
+  r[r>=2] <- 4 # Values >2 are 5-8 lesions
+  r[r==1.5] <- 3 # Values of 1.5 are 1-6 lesions
+  r[r==1] <- 2 # Values of 1 are 1st infection susc. varieties
+  r[r==0.5] <- 1 # Values of 0.5 are low risk 
+  
+  # Unique values up to 4 ("High risk" is always >= 4)
+  vals <- unique(values(r))
+  vals <- vals[!is.na(vals)]
+  
+  #Levels
+  lvls <- data.frame(ID = vals) %>%
+    mutate(
+      risk = case_when(ID == 0 ~ "0: Very Low Risk",
+                       ID == 1 ~ "1: Low Risk",
+                       ID == 2 ~ "2: 1st Infec. Susc. Vars.",
+                       ID == 3 ~ "3: Up to 1-6 Lesions",
+                       ID == 4 ~ "4: Up to 5-18 Lesions")) %>%
+    arrange(ID)
+  
+  # Factorize raster
+  levels(r) <- lvls
   
   return(r)
 }
@@ -134,18 +117,18 @@ RiskMap <- function(input, rast, pal, map_title, lgd_title, unique_vals, last_ye
   # Last year map
   if (last_year == 1) {
     layerID <- "Value (last year)"
-    map <- leaflet(height = 500, 
-                   options = leafletOptions(
-                     attributionControl = FALSE, zoomControl = FALSE, dragging = FALSE,
-                     doubleClickZoom = FALSE, touchZoom = FALSE, boxZoom = FALSE, 
-                     scrollWheelZoom = FALSE, minZoom = 6))
+    map <- leaflet(#height = 500, 
+      options = leafletOptions(
+        attributionControl = FALSE, zoomControl = FALSE, dragging = FALSE,
+        doubleClickZoom = FALSE, touchZoom = FALSE, boxZoom = FALSE, 
+        scrollWheelZoom = FALSE, minZoom = 6))
     
     # Current year map
   } else {
     layerID <- "Value"
-    map <- leaflet(height = 500, 
-                   options = leafletOptions(
-                     attributionControl = FALSE, zoomControl = FALSE, minZoom = 6)) %>% 
+    map <- leaflet(#height = 500, 
+      options = leafletOptions(
+        attributionControl = FALSE, zoomControl = FALSE, minZoom = 6)) %>% 
       
       # Change position of zoom control buttons
       htmlwidgets::onRender("function(el, x) {
@@ -154,49 +137,84 @@ RiskMap <- function(input, rast, pal, map_title, lgd_title, unique_vals, last_ye
     
   }
   
+  # Label style for cities
+  cityLabelOptions <- labelOptions(noHide=TRUE, textOnly = TRUE,
+                                   style = list("color" = "#656565","font-size" = "12px")) 
+  
   # Add additional map features
   map <- map %>%
     # Add OpenStreetMap layer
-    addProviderTiles(providers$CartoDB.Voyager)  %>%
+    addProviderTiles(providers$CartoDB.PositronNoLabels)  %>%
     # Risk layer output
-    addRasterImage(rast, color = pal, opacity = 0.5,
+    addRasterImage(rast, color = pal, opacity = 1,
                    group = layerID, layerId = layerID) %>%
     # Risk layer raster query (use project = TRUE or get wrong values)
+    # Changed from "mousemove" to "mousemove" because value would sometimes get "stuck" (wouldn't update)
     addImageQuery(raster(rast), project = TRUE, prefix = "", digits = 0,
                   layerId = layerID, position = "topleft", type = "mousemove") %>%
     # Add county lines / markers
     addPolylines(data = state_sf, group = "States", opacity = 0.25, 
                  color = "black", weight = 1.75) %>%
     addPolylines(data = county_sf, group = "Counties", opacity = 0.15, 
-                 color = "black", weight = 1) %>%
+                 color = "black", weight = 1.25) %>%
+    # Add roads
+    # Major roads only (zoom = 6)
+    addPolylines(data = road_primary_sf, opacity = 0.1, 
+                 color = "#622A0F", weight = 0.75, group = "Major Road") %>%
+    groupOptions("Major Road", zoomLevels = 6:7) %>%
+    # All roads
+    addPolylines(data = road_all_sf, opacity = 0.1,
+                 color = "#622A0F", weight = 0.75, group = "All Road") %>%
+    groupOptions("All Road", zoomLevels = 8:20) %>%
+    # Huge cities for (zoom level = 6)
+    addLabelOnlyMarkers(data = city_huge_sf, label = ~city, group = "Huge Cities",
+                        labelOptions = cityLabelOptions) %>%
+    groupOptions("Huge Cities", zoomLevels = 6) %>%
+    # Major cities (zoom level = 7 to 8)
+    addLabelOnlyMarkers(data = city_major_sf, label = ~city, group = "Major Cities",
+                        labelOptions = cityLabelOptions) %>%
+    groupOptions("Major Cities", zoomLevels = 7:8) %>%
+    # Small cities (zoom level = 9 to 10)
+    addLabelOnlyMarkers(data = city_small_sf, label = ~city, group = "Small Cities",
+                        labelOptions = cityLabelOptions) %>%
+    groupOptions("Small Cities", zoomLevels = 9) %>%
+    # All cities (high zoom levels)
+    addLabelOnlyMarkers(data = city_all_sf, label = ~city, group = "All Cities",
+                        labelOptions = cityLabelOptions) %>%
+    groupOptions("All Cities", zoomLevels = 10:20) %>%
     # Max bounds prevents zooming out past western OR and WA
-    setMaxBounds(lng1 = -127, lat1 = 41.98, lng2 = -120.5, lat2 = 49.1664) %>%
+    setMaxBounds(lng1 = -127, lat1 = 41.966, lng2 = -120.5, lat2 = 49.1664) %>%
     # Map title
     addControl(map_title, position = "bottomleft", className = "map-title") %>%
+    #addControl(map_title, className = "map-title") %>%
     # Shows map coordinates as mouse is moved over map
     addMouseCoordinates
   
+  # TO DO: Could not figure out how to put legend outside of map!!!
+  # The legend gets in the way when viewing the app on a phone
   ## Final map features
-  ## Add legend
-  lgd_vals <- factor(unique_vals, 
-                     levels = unique(levels(rast)[[1]]$risk))
-  map <- map %>%
-    addLegendFactor(title = lgd_title, 
-                    pal = colorFactor(pal, lgd_vals),
-                    values =  lgd_vals, position = "bottomleft",
-                    width = 10, height = 10, labelStyle = 'font-size: 14px;')
-  
+  ## Add legend (only to current year map)
+  ## TO DO: figure out how to make legend background fully opaque
+  # lgd_vals <- factor(unique_vals, levels = unique(levels(rast)[[1]]$risk))
+  # map <- map %>%
+  #   addLegendFactor(title = lgd_title, 
+  #                   pal = colorFactor(pal, lgd_vals),
+  #                   values =  lgd_vals, 
+  #                   orientation = "horizontal",
+  #                   width = 10, height = 10, 
+  #                   labelStyle = 'font-size: 14px;')
   return(map)
 }
+
 
 # Import and process model outputs ----
 
 # File names
-fls <- c("Cum_Inf_Risk_3day.tif", "Cum_Inf_Risk_4day.tif","Cum_Inf_Risk_Total.tif")
-#outdir_current <- paste0("C:/Users/barkebri/Documents/Species/BOXB/Web_app/Rasters/ref_6-11/", current_year)
-#outdir_lastYr <- paste0("C:/Users/barkebri/Documents/Species/BOXB/Web_app/Rasters/ref_6-11/", last_year)
-outdir_current <- "/srv/shiny-server/boxb/rasters/today_maps/Misc_output"
-outdir_lastYr <-  "/srv/shiny-server/boxb/rasters/today_lastYr_maps/Misc_output"
+fls <- c("Cum_Inf_Risk_1day.tif", "Cum_Inf_Risk_2day.tif","Cum_Inf_Risk_3day.tif", "Cum_Inf_Risk_4day.tif")
+#outdir_current <- paste0("C:/Users/barkebri/Documents/Species/BOXB/Web_app/Rasters/ref_6-8_new/", current_year)
+#outdir_lastYr <- paste0("C:/Users/barkebri/Documents/Species/BOXB/Web_app/Rasters/ref_6-8_new/", last_year)
+outdir_current <- "/srv/shiny-server/boxb/rasters/today_maps"
+outdir_lastYr <-  "/srv/shiny-server/boxb/rasters/today_lastYr_maps"
 
 # Model outputs for current run 
 rasts_current <- map(
@@ -230,7 +248,15 @@ tag.map.title <- tags$style(HTML("
   }
 "))
 
-# User interface ------
+# TO DO: Figure out way to control leaflet legend background opacity
+# border-radius makes rounded edges
+# tag.map.legend <- tags$style(HTML("
+#   .leaflet-control.legend { 
+#     background: rgba(255,255,255,.75);
+#   }
+# "))
+
+# UI: User interface ------
 
 #### * Color themes ####
 mytheme <- create_theme(
@@ -291,7 +317,7 @@ ui <- fluidPage(
               style = "font-size:19px;",
               column(width = 12, 
                      offset = 0, 
-                     p("The boxwood blight infection risk mapping tool uses gridded climate data to calculate the risk of boxwood being infected by boxwood blight in western Oregon and Washington. Three day and four day forecasts of infection risk are available, as well as a map of cumulative risk (Jan 1 to date of four day forecast). Climate data are derived from the ", a(href = "https://www.prism.oregonstate.edu", "PRISM", target = "_blank", style="text-decoration-line: underline;"), "database at a 800 m", tags$sup(2, .noWS = "before"), " resolution. Presently models are run only for areas west of the Cascades (approximately west of \u2013120.5\u00B0W). Please see a", a(href = "BOXB_webapp_tutorial.pdf", "tutorial", target = "_blank", style="text-decoration-line: underline;"), "for details on tool use and map interpretation. Expand the Introduction below to learn more about boxwood blight and risk models for this disease."))))),
+                     p("The boxwood blight infection risk mapping tool produces forecasts of the risk of boxwood being infected by boxwood blight in western Oregon and Washington. This information may help with planning scouting activities and with efforts to prevent or mitigate infections (e.g., with fungicide treatments). Forecasts are available for each day between tomorrow and four days from today. Climate data are derived from the", a(href = "https://www.prism.oregonstate.edu", "PRISM", target = "_blank", style="text-decoration-line: underline;"), "database at a 800 m", tags$sup(2, .noWS = "before"), " resolution and from the", a(href = "https://vlab.noaa.gov/web/mdl/ndfd", "NDFD", target = "_blank", style = "text-decoration-line: underline;"), "database (downscaled from a 2.5 km", tags$sup(2, .noWS = "before"), "to an 800 m", tags$sup(2, .noWS = "before"), "resolution). Presently models are run only for areas west of the Cascades (approximately west of \u2013120.5\u00B0W). Please see a", a(href = "BOXB_webapp_tutorial.pdf", "tutorial", target = "_blank", style="text-decoration-line: underline;"), "for details on tool use and map interpretation. Expand the Introduction below to learn more about boxwood blight and risk models for this disease."))))),
       
       # Background info 
       fluidRow(
@@ -312,9 +338,9 @@ ui <- fluidPage(
               column(width = 10, offset = 0, 
                      p(strong("Introduction: "), "Boxwood blight caused by the fungus ", em("Calonectria pseudonaviculata"), " can result in defoliation, decline, and death of susceptible varieties of boxwood, including most varieties of ", em("Buxus sempervirens"), " such as \u0022Suffruticosa\u0022  (English boxwood) and \u0022Justin Brouwers\u0022. Images show diagnostic symptoms of boxwood blight including", strong("(A)"),  "defoliation,", strong("(B)"), "leaf spots, and", strong("(C)"), "black streaks on stems (courtesy of Chuan Hong). The fungus has been detected at several locations (mostly in nurseries) in at least six different counties in Oregon and is thought to be established in some areas. Previous", a(href = "https://doi.org/10.3390/biology11060849", "research", target = "_blank", style="text-decoration-line: underline;"), "indicates that western Oregon and Washington have highly suitable climates for establishment of", em("C. pseudonaviculata"),  ". Tools are therefore needed to inform growers and gardeners about when environmental conditions are conducive to boxwood blight infection and establishment."),
                      p("Generally, it should be very humid or raining and at moderately warm temperatures (60\u201385\u00B0F) for a couple days for boxwood blight infection risk to be high. An inoculum source must be present nearby for infection to occur. Overhead irrigation facilitates outbreaks because it creates higher relative humidity and exposes leaf surfaces to longer periods of leaf wetness. For more information on preventing and managing boxwood blight, see the ", a(href = " https://pnwhandbooks.org/plantdisease/host-disease/boxwood-buxus-spp-boxwood-blight", "Pacific Northwest Pest Management Handbook", target = "_blank", style="text-decoration-line: underline;"), " and a ", a(href = " https://www.pubs.ext.vt.edu/content/dam/pubs_ext_vt_edu/PPWS/PPWS-29/PPWS-29-pdf.pdf", "publication", target = "_blank", style="text-decoration-line: underline;"),"by Virginia Cooperative Extension."),
-                     p(strong("Tool description: "), "The risk mapping tool is similar to the ", a(href = "https://uspest.org/risk/boxwood_app", "boxwood blight model app", target = "_blank", style="text-decoration-line: underline;"), "and the", a(href = "https://uspest.org/risk/boxwood_map", "synoptic map-view of risk", target = "_blank", style="text-decoration-line: underline;"), "available at", a(href = "https://uspest.org", "USPest.org", target = "_blank", style="text-decoration-line: underline;"), "except that it uses daily gridded climate data instead of hourly climate data from single weather stations. Spatialized predictions allow you to visualize risk for all areas in western Oregon and Washington, from a single neighborhood to an entire city or region. The spatial model is run using a modified version of a platform known as", a(href = "https://uspest.org/CAPS/", "DDRP", target = "_blank", .noWS = "after", style="text-decoration-line: underline;"), ", which provides real-time forecasts of phenology and establishment risk of 16 species of invasive insects in the contiguous US. It will likely need to be fine-tuned as more infection incidence data become available. Technical information on the station-based (hourly) model can be found at", a(href = "https://uspest.org/wea/Boxwood_blight_risk_model_summaryV3.pdf", "USPest.org", target = "_blank", .noWS = "after", style="text-decoration-line: underline;"),"."),
-                     p(strong("Suggested citation: "), "Barker, B. S., and L. Coop. 2023. Boxwood blight risk mapping app for western Oregon and Washington. Oregon IPM Center, Oregon State University.", a(href = "https://uspest.org/xxxx", "https://uspest.org/xxxx", .noWS = c("after"), style="text-decoration-line: underline;"), "."),
-                     p(strong("Source code and feedback: "), "To view the source code, visit the", a(href = "https://github.com/bbarker505/boxb", "GitHub repository", target = "_blank", .noWS = c("after"), style="text-decoration-line: underline;"), ". To report bugs or provide feedback, please e-mail Brittany Barker at", a(href = "mailto:brittany.barker@oregonstate.edu", "brittany.barker@oregonstate.edu", .noWS = c("after"), style="text-decoration-line: underline;"), "."),
+                     p(strong("Tool description: "), "The risk mapping tool is similar to the ", a(href = "https://uspest.org/risk/boxwood_app", "boxwood blight model app", target = "_blank", style="text-decoration-line: underline;"), "and the", a(href = "https://uspest.org/risk/boxwood_map", "synoptic map-view of risk", target = "_blank", style="text-decoration-line: underline;"), "available at", a(href = "https://uspest.org", "USPest.org", target = "_blank", style="text-decoration-line: underline;"), "except that it uses daily gridded climate data instead of hourly climate data from single weather stations.  The spatial model is run using a modified version of a platform known as", a(href = "https://uspest.org/CAPS/", "DDRP", target = "_blank", .noWS = "after", style="text-decoration-line: underline;"), ", which provides real-time forecasts of phenology and establishment risk of 16 species of invasive insects in the contiguous US. It will likely need to be fine-tuned as more infection incidence data become available. Technical information on the station-based (hourly) model can be found at", a(href = "https://uspest.org/wea/Boxwood_blight_risk_model_summaryV3.pdf", "USPest.org", target = "_blank", .noWS = "after", style="text-decoration-line: underline;"),"."),
+                     p(strong("Suggested citation: "), "Barker, B. S., and L. Coop. 2023. Boxwood blight risk mapping app for western Oregon and Washington. Oregon IPM Center, Oregon State University.", a(href = "https://riskmaps.oregonstate.edu/boxb/", "https://riskmaps.oregonstate.edu/boxb/", .noWS = c("after"), style="text-decoration-line: underline;"), "."),
+                     p(strong("Source code and feedback: "), "To view the source code, visit the", a(href = "https://github.com/bbarker505/boxb-webapp", "GitHub repository", target = "_blank", .noWS = c("after"), style="text-decoration-line: underline;"), ". To report bugs or provide feedback, please e-mail Brittany Barker at", a(href = "mailto:brittany.barker@oregonstate.edu", "brittany.barker@oregonstate.edu", .noWS = c("after"), style="text-decoration-line: underline;"), "."),
                      p(strong("Disclaimer: "), "The risk index is intended to inform your decisions about management actions, such as choice and timing of control measures and intensity of scouting. It should supplement, not replace, the other factors you consider in making these decisions. Use at your own risk."))))),
       
       # Risk map menu
@@ -339,13 +365,13 @@ ui <- fluidPage(
                                                                icon = icon("info"), 
                                                                style = "info", 
                                                                size = "extra-small")),
-                                    choices = c("Three Day", "Four Day", "Cumulative (Total)"),
+                                    choices = c("One Day", "Two Day", "Three Day", "Four Day"),
                                     selected = "Three Day"),
                        # Popover info box
                        shinyBS::bsPopover(
                          id = "info_maptype",
                          title = "Select risk map",
-                         content = paste0("Three Day and Four Day risk maps show forecasts of infection risk for ", DateFormat(current_date + 3), " and ",  DateFormat(current_date + 4), ", respectively. Possible levels of infection risk are: Very Low Risk, Low Risk, 1st Infection of Susceptible Varieties, Up to 1-6 Lesions, and Up to 5-18 Lesions. The Cumulative (Total) risk map shows predictions of total risk accumulation between the start of the year and ", DateFormat(current_date + 4), ". Hover the mouse over a location on the map to see a numerical risk value."),
+                         content = paste0("Risk maps show forecasts of infection risk for ", DateFormat(current_date + 1), ", ", DateFormat(current_date + 2), ", ", DateFormat(current_date + 3), ", and ",  DateFormat(current_date + 4), ", respectively. Possible levels of infection risk are: Very Low Risk, Low Risk, 1st Infection of Susceptible Varieties, Up to 1-6 Lesions, and Up to 5-18 Lesions. Hover the mouse over a location on the map to see a numerical risk value."),
                          placement = "right",
                          trigger = "hover",
                          options = list(container = "body"))),
@@ -406,16 +432,34 @@ ui <- fluidPage(
                           width = 12, uiOutput("error_message")))),
         
         # Risk maps
+        # For map heights or the entire region won't be shown (cuts off So. OR)
+        tags$style(type = "text/css", "#riskmap1 {height: calc(500px) !important;}"),
+        tags$style(type = "text/css", "#riskmap2 {height: calc(500px) !important;}"),
         fluidRow(style = "padding-left:15px;padding-right:15px;",
-                 column(width = 6, leafletOutput("riskmap1") 
-                        %>% withSpinner(color="#0dc5c1")),
+                 column(width = 6, 
+                        leafletOutput("riskmap1") %>% withSpinner(color="#0dc5c1")),
                  conditionalPanel(
                    condition =  "input.lastYr_checkbox == 1", 
                    column(width = 6, leafletOutput("riskmap2") 
                           %>% withSpinner(color="#0dc5c1")))),
         
+        # Legend title
+        fluidRow(style = "margin-bottom:0em;padding-left:15px;padding-top:5px",
+                 column(width = 6, style = "margin-bottom:-1em;", align = "center", p(strong("Legend"))),
+        ),
+        
+        # Legend
+        fluidRow(style = "font-size:19px;margin-top:0em;padding-left:15px;",
+                 column(width = 7, align = "align-items:center; justify-content: center;", style = "font-size:16px;padding-left:20px;",
+                        column(width = 2, align = "center",  p(div(icon("fa-solid fa-square", style = "background-color:#DCFFE6;color:#656565;")), HTML(paste("0:", "Very Low Risk", sep="<br/>")))),
+                        column(width = 2, align = "center",  p(div(icon("fa-solid fa-square", style = "background-color:#B0FFB0;color:#656565;")), HTML(paste("1:", "Low Risk", sep = "<br/>")))),
+                        column(width = 2, align = "center", p(div(icon("fa-solid fa-square", style = "background-color:#FAFFD0;color:#656565;")), HTML(paste("2:", "1st Infec. Susc. Vars.", sep = "<br/>")))),
+                        column(width = 2, align = "center", p(div(icon("fa-solid fa-square", style = "background-color:#FFE9A6;color:#656565;")), HTML(paste("3:", "Up to 1\u20136 Lesions", sep = "<br/>")))),
+                        column(width = 2, align = "center",  p(div(icon("fa-solid fa-square", style = "background-color:#FFD0E6;color:#656565;")), HTML(paste("4:", "Up to 5\u201318 Lesions", sep = "<br/>"))))
+                 )),
+        
         # Acknowledgements
-        fluidRow(style="padding-left:15px;margin-top:1.5em;font-size:19px;",
+        fluidRow(style="padding-left:15px;margin-top:1.5em;margin-right:5px;font-size:19px;",
                  box(title = strong("Acknowledgements", style = "font-size:22px"),
                      status = "primary",
                      solidHeader = TRUE,
@@ -424,8 +468,8 @@ ui <- fluidPage(
                      width = 12,
                      color = "light-blue",
                      fluidRow(
-                       style = "font-size:19px;",
-                       column(width = 12, 
+                       style = "font-size:19px;padding:0px;",
+                       column(width = 12, offset = 0, 
                               p("Creation of this app was funded by", a(href = "https://www.oregon.gov/ODA", "Oregon Department of Agriculture", target = "_blank", style="text-decoration-line: underline;"), "Nursery Research Grant no. ODA-4310-A. Boxwood blight risk modeling work was funded by the US Farm Bill FY17,", a(href = "https://www.aphis.usda.gov/aphis/", "USDA APHIS PPQ", target = "_blank", style="text-decoration-line: underline;"), "agreement number 20-8130-0282-CA, and", a(href = "https://www.nifa.usda.gov/grants/programs/crop-protection-pest-management-program", "USDA NIFA CPPM", target = "_blank", style="text-decoration-line: underline;"), "Extension Implementation Program grant no. 2021-70006-35581. Many collaborators from OSU, USDA ARS, Virginia Tech, and North Carolina State University helped improve the model."))))),
         
         # Logos
@@ -436,11 +480,13 @@ ui <- fluidPage(
                  img(src = "Oregon-Department-of-Agriculture-logo.png", width = "75%", style = "max-width: 200px;")),
           column(width = 3, align = "center", offset = 0,
                  img(src = "PRISM.png", width = "55%", style = "max-width: 200px;")),
-          column(width = 3, align = "center", offset = 0,
+          column(width = 3,
+                 align = "center", offset = 0,
                  img(src = "usda-logo_original.png", width = "45%", style = "max-width: 200px;max-height: 100px;")))))))
 
 # Server ----
 server <- function(input, output, session) {
+  
   
   #### * Import rasters ####
   # Different maps are rendered depending on radioButton inputs
@@ -448,42 +494,47 @@ server <- function(input, output, session) {
     
     # Rasters for this year
     raster_current <- switch(input$risk,
-                             "Three Day" = rasts_current[[1]],
-                             "Four Day" = rasts_current[[2]],
-                             "Cumulative (Total)" = rasts_current[[3]])
+                             "One Day" = rasts_current[[1]],
+                             "Two Day" = rasts_current[[2]],
+                             "Three Day" = rasts_current[[3]],
+                             "Four Day" = rasts_current[[4]])
     # Rasters for last year
     raster_lastYr <- switch(input$risk,
-                            "Three Day" = rasts_lastYr[[1]],
-                            "Four Day" = rasts_lastYr[[2]],
-                            "Cumulative (Total)" = rasts_lastYr[[3]])
+                            "One Day" = rasts_lastYr[[1]],
+                            "Two Day" = rasts_lastYr[[2]],
+                            "Three Day" = rasts_lastYr[[3]],
+                            "Four Day" = rasts_lastYr[[4]])
     
     #### * Map titles with dates ####
     
     # Dates for current year
     title_current <- switch(
       input$risk, 
+      "One Day" = paste0(DateFormat(current_date), " \u2013", DateFormat(current_date + 1)),
+      "Two Day" =  paste0(DateFormat(current_date), " \u2013", DateFormat(current_date + 2)),
       "Three Day" = paste0(DateFormat(current_date), " \u2013", DateFormat(current_date + 3)),
-      "Four Day" = paste0(DateFormat(current_date), " \u2013", DateFormat(current_date + 4)),
-      "Cumulative (Total)" = paste0("1/1/", current_year, " \u2013", DateFormat(current_date + 4)))
+      "Four Day" = paste0(DateFormat(current_date), " \u2013", DateFormat(current_date + 4)))
     title_current <- tags$div(tag.map.title, HTML(title_current))
     
     # Dates for last year
     title_lastYr <- switch(
       input$risk, 
+      "One Day" = paste0(DateFormat(lastYr_date), " \u2013", DateFormat(lastYr_date + 1)),
+      "Two Day" =  paste0(DateFormat(lastYr_date), " \u2013", DateFormat(lastYr_date + 2)),
       "Three Day" = paste0(DateFormat(lastYr_date), " \u2013", DateFormat(lastYr_date + 3)),
-      "Four Day" = paste0(DateFormat(lastYr_date), " \u2013", DateFormat(lastYr_date + 4)),
-      "Cumulative (Total)" = paste0("1/1/", last_year, " \u2013", DateFormat(lastYr_date + 4)))
+      "Four Day" = paste0(DateFormat(lastYr_date), " \u2013", DateFormat(lastYr_date + 4)))
     title_lastYr <- tags$div(tag.map.title, HTML(title_lastYr))
     
     #### * Factorize rasters, define legend and palettes ####
     # Legend title
     lgd_title <- switch(input$risk,
-                        "Cumulative (Total)" = "Total Risk",
+                        "One Day" = "One Day Risk",
+                        "Two Day" = "Two Day Risk",
                         "Three Day" = "Three Day Risk",
                         "Four Day" = "Four Day Risk")
     
     # Color palettes
-    # Convert rasters to factor to categorical only for 3- and 4-day risk
+    # Convert rasters to factor 
     # Also define palettes for categorical maps
     # Legend title is used to define the type of risk map (short-term vs. cumulative)
     both_rasters <- c(raster_current, raster_lastYr)
@@ -495,13 +546,9 @@ server <- function(input, output, session) {
     ncols <-  length(unique(levels(max_rast)[[1]]$risk))
     
     # Palette depends on risk map type
-    # Maximum of 5 colors for 3- and 4-day vs. 11 colors for cumulative
+    # Maximum of 5 colors - uses same color ramp as uspest.org
     # Green-yellow-red
-    if (grepl("Day", lgd_title)) {
-      pal_risk <- colorRampPalette(c("#009405", "#ffff00", "#da9101", "#c30010"))(5)
-    } else {
-      pal_risk <- colorRampPalette(c("#009405", "#ffff00", "#da9101", "#c30010"))(11)
-    }
+    pal_risk <- c("#DCFFE6", "#B0FFB0","#FAFFD0", "#FFE9A6", "#FFD0E6")
     
     # Retain needed levels only
     pal_risk <- pal_risk[1:ncols]
@@ -519,7 +566,8 @@ server <- function(input, output, session) {
     # Current year map
     output$riskmap1 <- renderLeaflet({ 
       RiskMap(input, raster_current, pal_risk_current, title_current,  
-              lgd_title, unique_vals_current, last_year = 0) 
+              lgd_title, unique_vals_current, last_year = 0) %>%
+        fitBounds(lng1 = -127, lat1 = 41, lng2 = -120.5, lat2 = 49.1664)
     })
     
     # This code block was supposed to ensure that the risk map for last year is in sync
@@ -581,7 +629,7 @@ server <- function(input, output, session) {
       location <- input$address
       # Geocode the location
       coords <- tribble(~addr, location) %>%
-        geocode(addr, method = "mapquest")
+        geocode(addr, method = 'mapquest')
       
       # Address submit errors
       output$error_message <- renderText({
@@ -611,7 +659,7 @@ server <- function(input, output, session) {
       # Add circle markers and zoom to location
       if (!is.na(coords$lat)) {
         
-        if (coords$lat > 41.98 & coords$lat < 49.1664 & 
+        if (coords$lat > 41.7 & coords$lat < 49.1664 & 
             coords$long > -127 & coords$long < -120.5) {
           
           output$search_message <- renderText({
@@ -622,13 +670,14 @@ server <- function(input, output, session) {
           # Current year map - can modify rendered map using "leafletProxy"
           # Decided to not show marker for last year map - not necessary
           leafletProxy("riskmap1") %>%
-            clearMarkers() %>% # Remove circle markers from last submission
-            addRasterImage(raster_current, color = pal_risk_current, opacity = 0.5,
+            removeMarker(layerId = "Value") %>% 
+            #clearMarkers() %>% # Remove circle markers from last submission
+            addRasterImage(raster_current, color = pal_risk_current, opacity = 1,
                            group = "Value", layerId = "Value") %>%
             addImageQuery(raster(raster_current), project = TRUE, prefix = "", digits = 0,
                           layerId = "Value", position = "topleft", type = "mousemove") %>%
             addCircleMarkers(lat = coords$lat, lng = coords$long,
-                             opacity = 0.75, color = "cyan", 
+                             opacity = 0.75, color = "blue", 
                              weight = 3, layerId = "Value", fill = FALSE) %>%
             setView(lng = coords$long, lat = coords$lat, zoom = 11) # Zooms to area
           
@@ -638,9 +687,12 @@ server <- function(input, output, session) {
       # If this code chunk is absent, last year map will be zoomed to full extent.
       observeEvent(input$lastYr_checkbox, {
         
+        # Make sure map is zoomed to same extent as current year map
+        bounds <- input$riskmap1_bounds
+        
         if (!is.na(coords$lat)) {
           
-          if (coords$lat > 41.9800 & coords$lat < 49.1664 & 
+          if (coords$lat > 41.700 & coords$lat < 49.1664 & 
               coords$long > -127 & coords$long < -120.5) {
             # Render map
             output$riskmap2 <- renderLeaflet({
@@ -648,7 +700,8 @@ server <- function(input, output, session) {
                       lgd_title, unique_vals_lastYr, last_year = 1) %>%
                 addImageQuery(raster(raster_lastYr), project = TRUE, prefix = "", digits = 0,
                               layerId = "Value (last year)", position = "topleft", type = "mousemove") %>%
-                setView(lng = coords$long, lat = coords$lat, zoom = 11)
+                #setView(lng = coords$long, lat = coords$lat, zoom = 11) %>%
+                fitBounds(bounds$west, bounds$south, bounds$east, bounds$north)
             })
           }
           
@@ -671,13 +724,13 @@ server <- function(input, output, session) {
       if (input$address_checkbox == 0) {
         # Zoom back out to western OR and WA and clear location markers
         leafletProxy("riskmap1")  %>%
-          fitBounds(lng1 = -127, lat1 = 41.98, lng2 = -120.5, lat2 = 49.1664) %>%
-          clearMarkers()  %>% 
+          fitBounds(lng1 = -127, lat1 = 41.7, lng2 = -120.5, lat2 = 49.1664) %>%
+          removeMarker(layerId = "Value")  %>% 
           addImageQuery(raster(raster_current), project = TRUE, prefix = "", digits = 0,
                         layerId = "Value", position = "topleft", type = "mousemove") 
         leafletProxy("riskmap2") %>%
-          fitBounds(lng1 = -127, lat1 = 41.98, lng2 = -120.5, lat2 = 49.1664) %>%
-          clearMarkers() %>% 
+          fitBounds(lng1 = -127, lat1 = 41.7, lng2 = -120.5, lat2 = 49.1664) %>%
+          removeMarker(layerId = "Value") %>% 
           addImageQuery(raster(raster_lastYr), project = TRUE, prefix = "", digits = 0,
                         layerId = "Value (last year)", position = "topleft", type = "mousemove") 
       }
