@@ -50,16 +50,6 @@ state_sf <- st_read("./features/states_OR_WA.shp")
 # County boundaries
 county_sf <- st_read("./features/counties_OR_WA.shp") 
 
-# Roads
-road_all_sf <- st_read("./features/roads_OR_WA.shp") 
-road_primary_sf <- filter(road_all_sf, MTFCC == "S1100")
-
-# Cities (keep only large cities)
-city_all_sf <- st_read("./features/all_cities_OR_WA.shp")
-city_small_sf <- filter(city_all_sf, popultn > 20000)
-city_major_sf <- filter(city_all_sf, popultn > 125000)
-city_huge_sf <- filter(city_all_sf, popultn  >= 250000)
-
 # Functions ----
 
 # Function that removes leading 0s in map title dates
@@ -137,16 +127,13 @@ RiskMap <- function(input, rast, pal, map_title, lgd_title, unique_vals, last_ye
     
   }
   
-  # Label style for cities
-  cityLabelOptions <- labelOptions(noHide=TRUE, textOnly = TRUE,
-                                   style = list("color" = "#656565","font-size" = "12px")) 
-  
   # Add additional map features
   map <- map %>%
     # Add OpenStreetMap layer
-    addProviderTiles(providers$CartoDB.PositronNoLabels)  %>%
+    #addProviderTiles(providers$CartoDB.Voyager)  %>%
+    addProviderTiles(providers$Stadia.StamenTonerLite)  %>%
     # Risk layer output
-    addRasterImage(rast, color = pal, opacity = 1,
+    addRasterImage(rast, color = pal, opacity = 0.7,
                    group = layerID, layerId = layerID) %>%
     # Risk layer raster query (use project = TRUE or get wrong values)
     # Changed from "mousemove" to "mousemove" because value would sometimes get "stuck" (wouldn't update)
@@ -157,31 +144,6 @@ RiskMap <- function(input, rast, pal, map_title, lgd_title, unique_vals, last_ye
                  color = "black", weight = 1.75) %>%
     addPolylines(data = county_sf, group = "Counties", opacity = 0.15, 
                  color = "black", weight = 1.25) %>%
-    # Add roads
-    # Major roads only (zoom = 6)
-    addPolylines(data = road_primary_sf, opacity = 0.1, 
-                 color = "#622A0F", weight = 0.75, group = "Major Road") %>%
-    groupOptions("Major Road", zoomLevels = 6:7) %>%
-    # All roads
-    addPolylines(data = road_all_sf, opacity = 0.1,
-                 color = "#622A0F", weight = 0.75, group = "All Road") %>%
-    groupOptions("All Road", zoomLevels = 8:20) %>%
-    # Huge cities for (zoom level = 6)
-    addLabelOnlyMarkers(data = city_huge_sf, label = ~city, group = "Huge Cities",
-                        labelOptions = cityLabelOptions) %>%
-    groupOptions("Huge Cities", zoomLevels = 6) %>%
-    # Major cities (zoom level = 7 to 8)
-    addLabelOnlyMarkers(data = city_major_sf, label = ~city, group = "Major Cities",
-                        labelOptions = cityLabelOptions) %>%
-    groupOptions("Major Cities", zoomLevels = 7:8) %>%
-    # Small cities (zoom level = 9 to 10)
-    addLabelOnlyMarkers(data = city_small_sf, label = ~city, group = "Small Cities",
-                        labelOptions = cityLabelOptions) %>%
-    groupOptions("Small Cities", zoomLevels = 9) %>%
-    # All cities (high zoom levels)
-    addLabelOnlyMarkers(data = city_all_sf, label = ~city, group = "All Cities",
-                        labelOptions = cityLabelOptions) %>%
-    groupOptions("All Cities", zoomLevels = 10:20) %>%
     # Max bounds prevents zooming out past western OR and WA
     setMaxBounds(lng1 = -127, lat1 = 41.966, lng2 = -120.5, lat2 = 49.1664) %>%
     # Map title
@@ -205,7 +167,6 @@ RiskMap <- function(input, rast, pal, map_title, lgd_title, unique_vals, last_ye
   #                   labelStyle = 'font-size: 14px;')
   return(map)
 }
-
 
 # Import and process model outputs ----
 
