@@ -443,19 +443,20 @@ ui <- fluidPage(
                    column(width = 6, leafletOutput("riskmap2") 
                           %>% withSpinner(color="#0dc5c1")))),
         
+        
         # Legend title
         fluidRow(style = "margin-bottom:0em;padding-left:15px;padding-top:5px",
-                 column(width = 6, style = "margin-bottom:-1em;", align = "center", p(strong("Legend"))),
+                 column(width = 6, style = "font-size:22px;margin-bottom:-0.5em;", align = "center", p(strong("Legend"))),
         ),
         
         # Legend
         fluidRow(style = "font-size:19px;margin-top:0em;padding-left:15px;",
                  column(width = 7, align = "align-items:center; justify-content: center;", style = "font-size:16px;padding-left:20px;",
-                        column(width = 2, align = "center",  p(div(icon("fa-solid fa-square", style = "background-color:#DCFFE6;color:#656565;")), HTML(paste("0:", "Very Low Risk", sep="<br/>")))),
-                        column(width = 2, align = "center",  p(div(icon("fa-solid fa-square", style = "background-color:#B0FFB0;color:#656565;")), HTML(paste("1:", "Low Risk", sep = "<br/>")))),
-                        column(width = 2, align = "center", p(div(icon("fa-solid fa-square", style = "background-color:#FAFFD0;color:#656565;")), HTML(paste("2:", "1st Infec. Susc. Vars.", sep = "<br/>")))),
-                        column(width = 2, align = "center", p(div(icon("fa-solid fa-square", style = "background-color:#FFE9A6;color:#656565;")), HTML(paste("3:", "Up to 1\u20136 Lesions", sep = "<br/>")))),
-                        column(width = 2, align = "center",  p(div(icon("fa-solid fa-square", style = "background-color:#FFD0E6;color:#656565;")), HTML(paste("4:", "Up to 5\u201318 Lesions", sep = "<br/>"))))
+                        column(width = 2, align = "center",  p(strong(div(icon("fa-solid fa-square", style = "background-color:#DCFFE6;color:#656565;")), HTML(paste("0:", "Very Low Risk", sep="<br/>"))))),
+                        column(width = 2, align = "center",  p(strong(div(icon("fa-solid fa-square", style = "background-color:#B0FFB0;color:#656565;")), HTML(paste("1:", "Low Risk", sep = "<br/>"))))),
+                        column(width = 2, align = "center", p(strong(div(icon("fa-solid fa-square", style = "background-color:#FAFFD0;color:#656565;")), HTML(paste("2:", "1st Infec. Susc. Vars.", sep = "<br/>"))))),
+                        column(width = 2, align = "center", p(strong(div(icon("fa-solid fa-square", style = "background-color:#FFE9A6;color:#656565;")), HTML(paste("3:", "Up to 1\u20136 Lesions", sep = "<br/>"))))),
+                        column(width = 2, align = "center",  p(strong(div(icon("fa-solid fa-square", style = "background-color:#FFD0E6;color:#656565;")), HTML(paste("4:", "Up to 5\u201318 Lesions", sep = "<br/>")))))
                  )),
         
         # Acknowledgements
