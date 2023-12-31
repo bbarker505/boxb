@@ -130,10 +130,11 @@ RiskMap <- function(input, rast, pal, map_title, lgd_title, unique_vals, last_ye
   # Add additional map features
   map <- map %>%
     # Add OpenStreetMap layer
-    #addProviderTiles(providers$CartoDB.Voyager)  %>%
-    addProviderTiles(providers$Stadia.StamenTonerLite)  %>%
+    addProviderTiles(providers$CartoDB.Voyager)  %>%
+    #addProviderTiles(providers$Stadia.StamenTonerLite)  %>%
+    
     # Risk layer output
-    addRasterImage(rast, color = pal, opacity = 0.7,
+    addRasterImage(rast, color = pal, opacity = 0.65,
                    group = layerID, layerId = layerID) %>%
     # Risk layer raster query (use project = TRUE or get wrong values)
     # Changed from "mousemove" to "mousemove" because value would sometimes get "stuck" (wouldn't update)
