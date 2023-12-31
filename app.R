@@ -635,7 +635,7 @@ server <- function(input, output, session) {
           leafletProxy("riskmap1") %>%
             removeMarker(layerId = "Value") %>% 
             #clearMarkers() %>% # Remove circle markers from last submission
-            addRasterImage(raster_current, color = pal_risk_current, opacity = 1,
+            addRasterImage(raster_current, color = pal_risk_current, opacity = 0.65,
                            group = "Value", layerId = "Value") %>%
             addImageQuery(raster(raster_current), project = TRUE, prefix = "", digits = 0,
                           layerId = "Value", position = "topleft", type = "mousemove") %>%
