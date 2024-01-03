@@ -36,10 +36,10 @@ Sys.setenv(MAPQUEST_API_KEY = "5vjLXIpEjMHpANFr4Ok2BNxpuQPrsGQP")
 #### * Dates 
 # Used in map titles
 # Current dates and year
-current_date <- Sys.Date()
-current_year <- as.numeric(format(current_date, format = "%Y"))
-#current_year <- 2021
-#current_date <- as.Date(paste0("Jun-11-", current_year), format = "%b-%d-%Y") 
+#current_date <- Sys.Date()
+#current_year <- as.numeric(format(current_date, format = "%Y"))
+current_year <- 2021
+current_date <- as.Date(paste0("Jun-11-", current_year), format = "%b-%d-%Y") 
 last_year <- current_year - 1
 lastYr_date <- as.Date(gsub(current_year, last_year, current_date))
 
@@ -173,10 +173,10 @@ RiskMap <- function(input, rast, pal, map_title, lgd_title, unique_vals, last_ye
 
 # File names
 fls <- c("Cum_Inf_Risk_1day.tif", "Cum_Inf_Risk_2day.tif","Cum_Inf_Risk_3day.tif", "Cum_Inf_Risk_4day.tif")
-#outdir_current <- paste0("C:/Users/barkebri/Documents/Species/BOXB/Web_app/Rasters/ref_6-8_new/", current_year)
-#outdir_lastYr <- paste0("C:/Users/barkebri/Documents/Species/BOXB/Web_app/Rasters/ref_6-8_new/", last_year)
-outdir_current <- "/srv/shiny-server/boxb/rasters/today_maps/Misc_output"
-outdir_lastYr <-  "/srv/shiny-server/boxb/rasters/today_lastYr_maps/Misc_output"
+outdir_current <- paste0("C:/Users/barkebri/Documents/Species/BOXB/Web_app/Rasters/ref_6-8_new/", current_year)
+outdir_lastYr <- paste0("C:/Users/barkebri/Documents/Species/BOXB/Web_app/Rasters/ref_6-8_new/", last_year)
+#outdir_current <- "/srv/shiny-server/boxb/rasters/today_maps/Misc_output"
+#outdir_lastYr <-  "/srv/shiny-server/boxb/rasters/today_lastYr_maps/Misc_output"
 
 # Model outputs for current run 
 rasts_current <- map(

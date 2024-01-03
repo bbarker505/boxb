@@ -5,5 +5,5 @@ account: brittany-barker
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 9542644
-bundleId: 7827330
+bundleId:
 url: https://brittany-barker.shinyapps.io/boxb-webapp/
