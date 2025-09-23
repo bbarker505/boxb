@@ -3,6 +3,8 @@
 # Designed to run from day 1 of year through 4 days past current date
 # For example, if today is 8/1/23, then runs for 1/1/23 to 8/5/23
 
+options(shiny.sanitize.errors = FALSE)
+
 # Packages
 library(tidyverse) # Data wrangling/manipulation
 library(terra) # Import model outputs / work with rasters
@@ -36,12 +38,20 @@ Sys.setenv(MAPQUEST_API_KEY = "5vjLXIpEjMHpANFr4Ok2BNxpuQPrsGQP")
 #### * Dates 
 # Used in map titles
 # Current dates and year
-#current_date <- Sys.Date()
-#current_year <- as.numeric(format(current_date, format = "%Y"))
-current_year <- 2021
-current_date <- as.Date(paste0("Jun-11-", current_year), format = "%b-%d-%Y") 
+current_date <- Sys.Date()
+current_year <- as.numeric(format(current_date, format = "%Y"))
+#current_year <- 2021
+#current_date <- as.Date(paste0("Jun-11-", current_year), format = "%b-%d-%Y") 
 last_year <- current_year - 1
-lastYr_date <- as.Date(gsub(current_year, last_year, current_date))
+
+# Must deal with leap day or app will crash
+# Get data for March 1 for last year if today is a leap day
+if (current_year %% 4 == 0) {
+#if (current_year == as.Date(paste0(current_year, "-02-29"))) {
+  lastYr_date <- as.Date(gsub(current_year, last_year, current_date + 1))
+} else {
+  lastYr_date <- as.Date(gsub(current_year, last_year, current_date))
+}
 
 # Spatial features to add to map (all have CRS = WGS 84)
 # State boundaries
@@ -131,8 +141,7 @@ RiskMap <- function(input, rast, pal, map_title, lgd_title, unique_vals, last_ye
   map <- map %>%
     # Add OpenStreetMap layer
     addProviderTiles(providers$CartoDB.Voyager)  %>%
-    #addProviderTiles(providers$Stadia.StamenTonerLite)  %>%
-    
+    #addProviderTiles(providers$Stamen.TonerLite)  %>%
     # Risk layer output
     addRasterImage(rast, color = pal, opacity = 0.65,
                    group = layerID, layerId = layerID) %>%
@@ -173,10 +182,10 @@ RiskMap <- function(input, rast, pal, map_title, lgd_title, unique_vals, last_ye
 
 # File names
 fls <- c("Cum_Inf_Risk_1day.tif", "Cum_Inf_Risk_2day.tif","Cum_Inf_Risk_3day.tif", "Cum_Inf_Risk_4day.tif")
-outdir_current <- paste0("C:/Users/barkebri/Documents/Species/BOXB/Web_app/Rasters/ref_6-8_new/", current_year)
-outdir_lastYr <- paste0("C:/Users/barkebri/Documents/Species/BOXB/Web_app/Rasters/ref_6-8_new/", last_year)
-#outdir_current <- "/srv/shiny-server/boxb/rasters/today_maps/Misc_output"
-#outdir_lastYr <-  "/srv/shiny-server/boxb/rasters/today_lastYr_maps/Misc_output"
+#outdir_current <- paste0("C:/Users/barkebri/Documents/Species/BOXB/Web_app/Rasters/ref_6-8_new/", current_year)
+#outdir_lastYr <- paste0("C:/Users/barkebri/Documents/Species/BOXB/Web_app/Rasters/ref_6-8_new/", last_year)
+outdir_current <- "/srv/shiny-server/boxb/rasters/today_maps/Misc_output"
+outdir_lastYr <-  "/srv/shiny-server/boxb/rasters/today_lastYr_maps/Misc_output"
 
 # Model outputs for current run 
 rasts_current <- map(
@@ -294,9 +303,9 @@ ui <- fluidPage(
             fluidRow(
               style = "font-size:19px;",
               column(width = 2, align = "center", style='padding:0px;font-size:14px;',
-                     img(src = "boxb-infected-shrubs.png", width = "155px", style = "max-height: 240px;"),
-                     img(src = "boxb-infected-leaves.png", width = "155px", style = "max-height: 240px;"),
-                     img(src = "boxb-infected-stems.png", width = "160px", style = "max-height: 240px;")),
+                     img(src = "boxb-infected-shrubs2.png", width = "155px", style = "max-height: 240px;"),
+                     img(src = "boxb-infected-leaves2.png", width = "155px", style = "max-height: 240px;"),
+                     img(src = "boxb-infected-stems2.png", width = "160px", style = "max-height: 240px;")),
               column(width = 10, offset = 0, 
                      p(strong("Introduction: "), "Boxwood blight caused by the fungus ", em("Calonectria pseudonaviculata"), " can result in defoliation, decline, and death of susceptible varieties of boxwood, including most varieties of ", em("Buxus sempervirens"), " such as \u0022Suffruticosa\u0022  (English boxwood) and \u0022Justin Brouwers\u0022. Images show diagnostic symptoms of boxwood blight including", strong("(A)"),  "defoliation,", strong("(B)"), "leaf spots, and", strong("(C)"), "black streaks on stems (courtesy of Chuan Hong). The fungus has been detected at several locations (mostly in nurseries) in at least six different counties in Oregon and is thought to be established in some areas. Previous", a(href = "https://doi.org/10.3390/biology11060849", "research", target = "_blank", style="text-decoration-line: underline;"), "indicates that western Oregon and Washington have highly suitable climates for establishment of", em("C. pseudonaviculata"),  ". Tools are therefore needed to inform growers and gardeners about when environmental conditions are conducive to boxwood blight infection and establishment."),
                      p("Generally, it should be very humid or raining and at moderately warm temperatures (60\u201385\u00B0F) for a couple days for boxwood blight infection risk to be high. An inoculum source must be present nearby for infection to occur. Overhead irrigation facilitates outbreaks because it creates higher relative humidity and exposes leaf surfaces to longer periods of leaf wetness. For more information on preventing and managing boxwood blight, see the ", a(href = " https://pnwhandbooks.org/plantdisease/host-disease/boxwood-buxus-spp-boxwood-blight", "Pacific Northwest Pest Management Handbook", target = "_blank", style="text-decoration-line: underline;"), " and a ", a(href = " https://www.pubs.ext.vt.edu/content/dam/pubs_ext_vt_edu/PPWS/PPWS-29/PPWS-29-pdf.pdf", "publication", target = "_blank", style="text-decoration-line: underline;"),"by Virginia Cooperative Extension."),
@@ -468,6 +477,12 @@ server <- function(input, output, session) {
                             "Three Day" = rasts_lastYr[[3]],
                             "Four Day" = rasts_lastYr[[4]])
     
+   # FIX ME: why are extents suddenly different (1 extra col in last yr) as of 3/21/2024?
+   if (ncol(raster_lastYr) < ncol(raster_current)) {
+     raster_current <- raster_current[1:nrow(raster_current),1:507, drop = FALSE]
+     raster_current <- crop(raster_current, raster_lastYr)
+  }
+
     #### * Map titles with dates ####
     
     # Dates for current year

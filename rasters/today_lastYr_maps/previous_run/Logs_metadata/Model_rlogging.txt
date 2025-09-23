@@ -1,0 +1,315 @@
+#######################################
+### Log file for Plant Disease DDRP ###
+#######################################
+
+BASE DIR:  /data/PRISM/800m_W_ORWA/ 
+WORKING DIR:  /data/PRISM/800m_W_ORWA/2024 
+PARAMETER AND SETTINGS SETUP: getting parameters to use in model
+Species params: /home/barkebri/DDRP/spp_params/BOXB.params
+Reading params for species: BOXB Fullname: Boxwood_blight
+
+METADATA: creating metadata file for all inputs used in model
+Done writing metadata file
+
+PRISM_800m DATA PROCESSING
+Sampling every 30 days between 20240101 and 20240924
+Sampling also includes today (20240920) 3 days in future (20240923) and 4 days
+in future (20240924)
+Finished loading PRISM_800m files for 268 days
+Creating template file for W_ORWA
+Done cropping climate data
+
+DAILY TIME STEP
+Starting daily time step
+
+Saving raster brick: DDtotal.tif
+- Degree day accum. for all 13 dates
+
+Saving raster brick: Lifestage.tif
+- Lifestage for all 13 dates
+
+Saving raster brick: NumGen.tif
+- No. of gens for all 13 dates
+
+Saving raster brick: StageCount.tif
+- Generation and stage for all 13 dates
+
+Saving raster brick: CumDDs.tif
+- Plant disease degree day unit accum. for all 13 dates
+
+Saving raster brick: Cum_Inf_Risk_Total.tif
+- Plant disease cum. infection risk for all 13 dates
+
+Saving raster brick: Cum_Inf_Risk_1day.tif
+- Cum inf risk 1day
+
+Saving raster brick: Cum_Inf_Risk_2day.tif
+- Cum inf risk 2day
+
+Saving raster brick: Cum_Inf_Risk_3day.tif
+- Cum inf risk 3day
+
+Saving raster brick: Cum_Inf_Risk_4day.tif
+- Cum inf risk 4day
+
+Daily loop done (run time = 1.56 min)
+
+FINAL ANALYSES AND MAP PRODUCTION
+
+### SUMMARY MAPS: DDtotal, CumDDs, Total Inf. Risk, 3-day Inf. Risk, 2-day Inf.
+Risk, Lifestage, and No. of Gens
+
+Saving summary map: Misc_output/DDtotal_20240628.png
+- Number of accum. degree-days on 06/28/2024
+
+Saving summary map: Misc_output/DDtotal_20240130.png
+- Number of accum. degree-days on 01/30/2024
+
+Saving summary map: Misc_output/DDtotal_20240728.png
+- Number of accum. degree-days on 07/28/2024
+
+Saving summary map: Misc_output/DDtotal_20240921.png
+- Number of accum. degree-days on 09/21/2024
+
+Saving summary map: Misc_output/DDtotal_20240330.png
+- Number of accum. degree-days on 03/30/2024
+
+Saving summary map: Misc_output/DDtotal_20240429.png
+- Number of accum. degree-days on 04/29/2024
+
+Saving summary map: Misc_output/DDtotal_20240529.png
+- Number of accum. degree-days on 05/29/2024
+
+Saving summary map: Misc_output/DDtotal_20240229.png
+- Number of accum. degree-days on 02/29/2024
+
+Saving summary map: Misc_output/DDtotal_20240922.png
+- Number of accum. degree-days on 09/22/2024
+
+Saving summary map: Misc_output/DDtotal_20240920.png
+- Number of accum. degree-days on 09/20/2024
+
+Saving summary map: Misc_output/DDtotal_20240827.png
+- Number of accum. degree-days on 08/27/2024
+
+Saving summary map: Misc_output/Cum_DDs_20240130.png
+- Number of accum. plant disease degree-days on 01/30/2024
+
+Saving summary map: Misc_output/Cum_DDs_20240330.png
+- Number of accum. plant disease degree-days on 03/30/2024
+
+Saving summary map: Misc_output/Cum_DDs_20240229.png
+- Number of accum. plant disease degree-days on 02/29/2024
+
+Saving summary map: Misc_output/Cum_DDs_20240429.png
+- Number of accum. plant disease degree-days on 04/29/2024
+
+Saving summary map: Misc_output/Cum_DDs_20240529.png
+- Number of accum. plant disease degree-days on 05/29/2024
+
+Saving summary map: Misc_output/Cum_DDs_20240628.png
+- Number of accum. plant disease degree-days on 06/28/2024
+
+Saving summary map: Misc_output/Cum_DDs_20240728.png
+- Number of accum. plant disease degree-days on 07/28/2024
+
+Saving summary map: Misc_output/Cum_DDs_20240921.png
+- Number of accum. plant disease degree-days on 09/21/2024
+
+Saving summary map: Misc_output/Cum_DDs_20240922.png
+- Number of accum. plant disease degree-days on 09/22/2024
+
+Saving summary map: Misc_output/Cum_DDs_20240920.png
+- Number of accum. plant disease degree-days on 09/20/2024
+
+Saving summary map: Misc_output/Cum_DDs_20240827.png
+- Number of accum. plant disease degree-days on 08/27/2024
+
+Saving summary map: Misc_output/Cum_Inf_Risk_Total_20240130.png
+- Number of accum. infection risk units on 01/30/2024
+
+Saving summary map: Misc_output/Cum_Inf_Risk_Total_20240330.png
+- Number of accum. infection risk units on 03/30/2024
+
+Saving summary map: Misc_output/Cum_Inf_Risk_Total_20240229.png
+- Number of accum. infection risk units on 02/29/2024
+
+Saving summary map: Misc_output/Cum_Inf_Risk_Total_20240529.png
+- Number of accum. infection risk units on 05/29/2024
+
+Saving summary map: Misc_output/Cum_Inf_Risk_Total_20240429.png
+- Number of accum. infection risk units on 04/29/2024
+
+Saving summary map: Misc_output/Cum_Inf_Risk_Total_20240728.png
+- Number of accum. infection risk units on 07/28/2024
+
+Saving summary map: Misc_output/Cum_Inf_Risk_Total_20240921.png
+- Number of accum. infection risk units on 09/21/2024
+
+Saving summary map: Misc_output/Cum_Inf_Risk_Total_20240628.png
+- Number of accum. infection risk units on 06/28/2024
+
+Saving summary map: Misc_output/Cum_Inf_Risk_Total_20240922.png
+- Number of accum. infection risk units on 09/22/2024
+
+Saving summary map: Misc_output/Cum_Inf_Risk_Total_20240920.png
+- Number of accum. infection risk units on 09/20/2024
+
+Saving summary map: Misc_output/Cum_Inf_Risk_Total_20240827.png
+- Number of accum. infection risk units on 08/27/2024
+
+Saving summary map: Misc_output/Lifestage_20240330.png
+- Lifestage on 03/30/2024
+
+Saving summary map: Misc_output/Lifestage_20240130.png
+- Lifestage on 01/30/2024
+
+Saving summary map: Misc_output/Lifestage_20240229.png
+- Lifestage on 02/29/2024
+
+Saving summary map: Misc_output/Lifestage_20240529.png
+
+
+Saving summary map: Misc_output/Lifestage_20240429.png
+- Lifestage on 05/29/2024- Lifestage on 04/29/2024
+
+Saving summary map: Cum_Inf_Risk_1day_20240921.png
+- Number of accum. plant disease degree-days 1 days ago to current day
+
+Saving summary map: Misc_output/Lifestage_20240628.png
+- Lifestage on 06/28/2024
+
+Saving summary map: Misc_output/Lifestage_20240728.png
+- Lifestage on 07/28/2024
+
+Saving summary map: Cum_Inf_Risk_2day_20240922.png
+- Number of accum. plant disease degree-days 2 days ago to current day
+
+Saving summary map: Misc_output/Lifestage_20240920.png
+- Lifestage on 09/20/2024
+
+Saving summary map: Misc_output/Lifestage_20240827.png
+- Lifestage on 08/27/2024
+
+Saving summary map: Misc_output/NumGen_20240130.png
+- Numbers of generations on 01/30/2024
+
+Saving summary map: Misc_output/NumGen_20240330.png
+- Numbers of generations on 03/30/2024
+
+Saving summary map: Misc_output/NumGen_20240229.png
+- Numbers of generations on 02/29/2024
+
+Saving summary map: Misc_output/NumGen_20240529.png
+- Numbers of generations on 05/29/2024
+
+Saving summary map: Misc_output/NumGen_20240429.png
+- Numbers of generations on 04/29/2024
+
+Saving summary map: Misc_output/NumGen_20240728.png
+- Numbers of generations on 07/28/2024
+
+Saving summary map: Misc_output/Lifestage_20240921.png
+- Lifestage on 09/21/2024
+
+Saving summary map: Misc_output/NumGen_20240628.png
+- Numbers of generations on 06/28/2024
+
+Saving summary map: Misc_output/Lifestage_20240922.png
+- Lifestage on 09/22/2024
+
+Saving summary map: Misc_output/NumGen_20240920.png
+- Numbers of generations on 09/20/2024
+
+Saving summary map: Misc_output/DDtotal_20240924.png
+- Number of accum. degree-days on 09/24/2024
+
+Saving summary map: Misc_output/NumGen_20240827.png
+- Numbers of generations on 08/27/2024
+
+Saving summary map: Misc_output/DDtotal_20240923.png
+- Number of accum. degree-days on 09/23/2024
+
+Saving summary map: Misc_output/NumGen_20240921.png
+- Numbers of generations on 09/21/2024
+
+Saving summary map: Misc_output/NumGen_20240922.png
+- Numbers of generations on 09/22/2024
+
+Saving summary map: Misc_output/Cum_DDs_20240924.png
+- Number of accum. plant disease degree-days on 09/24/2024
+
+Saving summary map: Misc_output/Cum_DDs_20240923.png
+- Number of accum. plant disease degree-days on 09/23/2024
+
+Saving summary map: Cum_Inf_Risk_Total_20240924.png
+- Number of accum. infection risk units on 09/24/2024
+
+Saving summary map: Misc_output/Cum_Inf_Risk_Total_20240923.png
+- Number of accum. infection risk units on 09/23/2024
+
+Saving summary map: Cum_Inf_Risk_4day_20240924.png
+- Number of accum. plant disease degree-days 4 days ago to current day
+
+Saving summary map: Cum_Inf_Risk_3day_20240923.png
+- Number of accum. plant disease degree-days 3 days ago to current day
+
+Saving summary map: Misc_output/Lifestage_20240924.png
+- Lifestage on 09/24/2024
+
+Saving summary map: Misc_output/Lifestage_20240923.png
+- Lifestage on 09/23/2024
+
+Saving summary map: Misc_output/NumGen_20240924.png
+- Numbers of generations on 09/24/2024
+
+Saving summary map: Misc_output/NumGen_20240923.png
+- Numbers of generations on 09/23/2024
+
+Saving summary map: Misc_output/StageCount_20240130.png
+- Stage count on 01/30/2024
+
+Saving summary map: Misc_output/StageCount_20240330.png
+- Stage count on 03/30/2024
+
+Saving summary map: Misc_output/StageCount_20240229.png
+- Stage count on 02/29/2024
+
+Saving summary map: Misc_output/StageCount_20240429.png
+- Stage count on 04/29/2024
+
+Saving summary map: Misc_output/StageCount_20240529.png
+- Stage count on 05/29/2024
+
+Saving summary map: Misc_output/StageCount_20240628.png
+- Stage count on 06/28/2024
+
+Saving summary map: Misc_output/StageCount_20240827.png
+- Stage count on 08/27/2024
+
+Saving summary map: Misc_output/StageCount_20240922.png
+- Stage count on 09/22/2024
+
+Saving summary map: Misc_output/StageCount_20240728.png
+- Stage count on 07/28/2024
+
+Saving summary map: Misc_output/StageCount_20240921.png
+- Stage count on 09/21/2024
+
+Saving summary map: Misc_output/StageCount_20240920.png
+- Stage count on 09/20/2024
+
+Saving summary map: Misc_output/StageCount_20240923.png
+- Stage count on 09/23/2024
+
+Saving summary map: Misc_output/StageCount_20240924.png
+- Stage count on 09/24/2024
+Done with DDtotal, CumDDs, CumDDLW, Lifesetage, NumGen, and Generation and Stage
+maps
+
+### Done w/ processing of daily loop results ###
+Run time for analyses and map production = 2.41 min
+Renamed all final PNG files to include BOXB in file name
+
+MODEL RUN DONE
+Run time for entire model = 4.64 min
