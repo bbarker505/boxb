@@ -182,11 +182,18 @@ RiskMap <- function(input, rast, pal, map_title, lgd_title, unique_vals, last_ye
 
 # File names
 fls <- c("Cum_Inf_Risk_1day.tif", "Cum_Inf_Risk_2day.tif","Cum_Inf_Risk_3day.tif", "Cum_Inf_Risk_4day.tif")
+<<<<<<< HEAD
+#outdir_current <- paste0("C:/Users/barkebri/Documents/Species/BOXB/Web_app/Rasters/ref_6-8_new/", current_year)
+#outdir_lastYr <- paste0("C:/Users/barkebri/Documents/Species/BOXB/Web_app/Rasters/ref_6-8_new/", last_year)
+outdir_current <- "~/boxb/rasters/today_maps/Misc_output"
+outdir_lastYr <-  "~/boxb/rasters/today_lastYr_maps/Misc_output"
+=======
 outdir_current <- paste0("./rasters/today_maps/Misc_output")
 outdir_lastYr <- paste0("./rasters/today_maps/Misc_output")
 #outdir_current <- "/srv/shiny-server/boxb/rasters/today_maps/Misc_output"
 #outdir_lastYr <-  "/srv/shiny-server/boxb/rasters/today_lastYr_maps/Misc_output"
 
+>>>>>>> 978b0b46624fb94563976d980f84dd9f9b4e4654
 
 # Model outputs for current run 
 rasts_current <- map(
