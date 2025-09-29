@@ -148,7 +148,10 @@ RiskMap <- function(input, rast, pal, map_title, lgd_title, unique_vals, last_ye
     # Risk layer raster query (use project = TRUE or get wrong values)
     # Changed from "mousemove" to "mousemove" because value would sometimes get "stuck" (wouldn't update)
     addImageQuery(raster(rast), project = TRUE, prefix = "", digits = 0,
+<<<<<<< HEAD
                   #raster(rast), project = TRUE, prefix = "", digits = 0,
+=======
+>>>>>>> f6447d00c66c40a5f4212181258e9a1cf61d2c5d
                   layerId = layerID, position = "topleft", type = "mousemove") %>%
     # Add county lines / markers
     addPolylines(data = state_sf, group = "States", opacity = 0.25, 
@@ -190,7 +193,7 @@ outdir_current <- "~/boxb/rasters/today_maps/Misc_output"
 outdir_lastYr <-  "~/boxb/rasters/today_lastYr_maps/Misc_output"
 
 outdir_current <- paste0("./rasters/today_maps/Misc_output")
-outdir_lastYr <- paste0("./rasters/today_lastYr_maps/Misc_output/")
+outdir_lastYr <- paste0("./rasters/today_maps/Misc_output")
 #outdir_current <- "/srv/shiny-server/boxb/rasters/today_maps/Misc_output"
 #outdir_lastYr <-  "/srv/shiny-server/boxb/rasters/today_lastYr_maps/Misc_output"
 
