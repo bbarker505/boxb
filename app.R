@@ -147,8 +147,7 @@ RiskMap <- function(input, rast, pal, map_title, lgd_title, unique_vals, last_ye
                    group = layerID, layerId = layerID) %>%
     # Risk layer raster query (use project = TRUE or get wrong values)
     # Changed from "mousemove" to "mousemove" because value would sometimes get "stuck" (wouldn't update)
-    addImageQuery(rast, project = TRUE, prefix = "", digits = 0,
-                  #raster(rast), project = TRUE, prefix = "", digits = 0,
+    addImageQuery(raster(rast), project = TRUE, prefix = "", digits = 0,
                   layerId = layerID, position = "topleft", type = "mousemove") %>%
     # Add county lines / markers
     addPolylines(data = state_sf, group = "States", opacity = 0.25, 
@@ -184,7 +183,7 @@ RiskMap <- function(input, rast, pal, map_title, lgd_title, unique_vals, last_ye
 # File names
 fls <- c("Cum_Inf_Risk_1day.tif", "Cum_Inf_Risk_2day.tif","Cum_Inf_Risk_3day.tif", "Cum_Inf_Risk_4day.tif")
 outdir_current <- paste0("./rasters/today_maps/Misc_output")
-outdir_lastYr <- paste0("./rasters/today_lastYr_maps/Misc_output/")
+outdir_lastYr <- paste0("./rasters/today_maps/Misc_output")
 #outdir_current <- "/srv/shiny-server/boxb/rasters/today_maps/Misc_output"
 #outdir_lastYr <-  "/srv/shiny-server/boxb/rasters/today_lastYr_maps/Misc_output"
 
@@ -654,7 +653,7 @@ server <- function(input, output, session) {
             #clearMarkers() %>% # Remove circle markers from last submission
             addRasterImage(raster_current, color = pal_risk_current, opacity = 0.65,
                            group = "Value", layerId = "Value") %>%
-            addImageQuery(raster_current, project = TRUE, prefix = "", digits = 0,
+            addImageQuery(raster(raster_current), project = TRUE, prefix = "", digits = 0,
                           layerId = "Value", position = "topleft", type = "mousemove") %>%
             addCircleMarkers(lat = coords$lat, lng = coords$long,
                              opacity = 0.75, color = "blue", 
@@ -678,7 +677,7 @@ server <- function(input, output, session) {
             output$riskmap2 <- renderLeaflet({
               RiskMap(input, raster_lastYr, pal_risk_lastYr, title_lastYr,
                       lgd_title, unique_vals_lastYr, last_year = 1) %>%
-                addImageQuery(raster_lastYr, project = TRUE, prefix = "", digits = 0,
+                addImageQuery(raster(raster_lastYr), project = TRUE, prefix = "", digits = 0,
                               layerId = "Value (last year)", position = "topleft", type = "mousemove") %>%
                 #setView(lng = coords$long, lat = coords$lat, zoom = 11) %>%
                 fitBounds(bounds$west, bounds$south, bounds$east, bounds$north)
@@ -706,12 +705,12 @@ server <- function(input, output, session) {
         leafletProxy("riskmap1")  %>%
           fitBounds(lng1 = -127, lat1 = 41.7, lng2 = -120.5, lat2 = 49.1664) %>%
           removeMarker(layerId = "Value")  %>% 
-          addImageQuery(raster_current, project = TRUE, prefix = "", digits = 0,
+          addImageQuery(raster(raster_current), project = TRUE, prefix = "", digits = 0,
                         layerId = "Value", position = "topleft", type = "mousemove") 
         leafletProxy("riskmap2") %>%
           fitBounds(lng1 = -127, lat1 = 41.7, lng2 = -120.5, lat2 = 49.1664) %>%
           removeMarker(layerId = "Value") %>% 
-          addImageQuery(raster_lastYr, project = TRUE, prefix = "", digits = 0,
+          addImageQuery(raster(raster_lastYr), project = TRUE, prefix = "", digits = 0,
                         layerId = "Value (last year)", position = "topleft", type = "mousemove") 
       }
     })
