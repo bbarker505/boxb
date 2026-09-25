@@ -5,6 +5,12 @@
 
 options(shiny.sanitize.errors = FALSE)
 
+# Last update: Sep 2026 - CARTO key for map tiles, made maps faster by 
+# adjusting RiskMap code (factorization), and added labels plus base map with
+# a z-score to have layers (base, raster, labels, etc.)
+
+## Setup ----
+
 # Packages
 library(tidyverse) # Data wrangling/manipulation
 library(terra) # Import model outputs / work with rasters
@@ -33,7 +39,17 @@ library(htmlwidgets)
 
 ## Setup ----
 
-Sys.setenv(MAPQUEST_API_KEY = "5vjLXIpEjMHpANFr4Ok2BNxpuQPrsGQP")
+carto_key <- Sys.getenv("CARTO_KEY")
+mapquest_key <- Sys.getenv("MAPQUEST_API_KEY")
+
+if (!nzchar(carto_key)) {
+  stop("CARTO_KEY is not set.")
+}
+
+if (!nzchar(mapquest_key)) {
+  stop("MAPQUEST_API_KEY is not set.")
+}
+#Sys.setenv(MAPQUEST_API_KEY = "5vjLXIpEjMHpANFr4Ok2BNxpuQPrsGQP")
 
 #### * Dates 
 # Used in map titles
@@ -73,108 +89,157 @@ DateFormat <- function(dat) {
 # Rasters with 3- and 4-day risk have only 1 layer
 RastImport <- function(file_name) {
   rast_stack <- rast(file_name)
-  # Round up to nearest 0.5 
-  rast <- ceiling(rast_stack[[nlyr(rast_stack)]] / 0.5) * 0.5 
+  
+  # Use the final layer
+  rast <- rast_stack[[nlyr(rast_stack)]]
+  
   crs(rast) <- "+proj=longlat +datum=WGS84 +no_defs +ellps=GRS80 +towgs84=0,0,0"
+  
   return(rast)
 }
 
 # Function to factorize a raster (translate numbers to a category)
-FactorizeRast <- function(r, type) {
+FactorizeRast <- function(r) {
   
-  # Must recode raster because raster factorization doesn't work when 
-  # there are "duplicate" values (e.g., if 1.5 and 2 are both "High Risk"),
-  # and apparently it won't accept decimal values? This is strange.
-  r[r>=2] <- 4 # Values >2 are 5-8 lesions
-  r[r==1.5] <- 3 # Values of 1.5 are 1-6 lesions
-  r[r==1] <- 2 # Values of 1 are 1st infection susc. varieties
-  r[r==0.5] <- 1 # Values of 0.5 are low risk 
+  # Round to the model's 0.5 risk increments
+  r <- round(r * 2) / 2
   
-  # Unique values up to 4 ("High risk" is always >= 4)
-  vals <- unique(values(r))
-  vals <- vals[!is.na(vals)]
-  
-  #Levels
-  lvls <- data.frame(ID = vals) %>%
-    mutate(
-      risk = case_when(ID == 0 ~ "0: Very Low Risk",
-                       ID == 1 ~ "1: Low Risk",
-                       ID == 2 ~ "2: 1st Infec. Susc. Vars.",
-                       ID == 3 ~ "3: Up to 1-6 Lesions",
-                       ID == 4 ~ "4: Up to 5-18 Lesions")) %>%
-    arrange(ID)
-  
-  # Factorize raster
-  levels(r) <- lvls
+  # Convert continuous risk values to categorical values
+  r[r >= 2] <- 4
+  r[r == 1.5] <- 3
+  r[r == 1] <- 2
+  r[r == 0.5] <- 1
+  r[r < 0.5] <- 0
   
   return(r)
 }
-
 # Produce a leaflet map showing risk of infection
-RiskMap <- function(input, rast, pal, map_title, lgd_title, unique_vals, last_year) {
+RiskMap <- function(rast, pal, map_title, lgd_title, unique_vals, last_year) {
   
-  # Need different layer IDs (for "addImageQuery") and zoom/drag options 
-  # Last year map
+  rast_cat <- FactorizeRast(rast)
+  
   if (last_year == 1) {
     layerID <- "Value (last year)"
-    map <- leaflet(#height = 500, 
-      options = leafletOptions(
-        attributionControl = FALSE, zoomControl = FALSE, dragging = FALSE,
-        doubleClickZoom = FALSE, touchZoom = FALSE, boxZoom = FALSE, 
-        scrollWheelZoom = FALSE, minZoom = 6))
     
-    # Current year map
+    map <- leaflet(
+      options = leafletOptions(
+        attributionControl = FALSE,
+        zoomControl = FALSE,
+        dragging = FALSE,
+        doubleClickZoom = FALSE,
+        touchZoom = FALSE,
+        boxZoom = FALSE,
+        scrollWheelZoom = FALSE,
+        minZoom = 6
+      )
+    )
+    
   } else {
     layerID <- "Value"
-    map <- leaflet(#height = 500, 
-      options = leafletOptions(
-        attributionControl = FALSE, zoomControl = FALSE, minZoom = 6)) %>% 
-      
-      # Change position of zoom control buttons
-      htmlwidgets::onRender("function(el, x) {
-        L.control.zoom({ position: 'topright' }).addTo(this)
-      }")
     
+    map <- leaflet(
+      options = leafletOptions(
+        attributionControl = FALSE,
+        zoomControl = FALSE,
+        minZoom = 6
+      )
+    ) %>%
+      htmlwidgets::onRender(
+        "function(el, x) {
+          L.control.zoom({ position: 'topright' }).addTo(this)
+        }"
+      )
   }
   
-  # Add additional map features
-  map <- map %>%
-    # Add OpenStreetMap layer
-    addProviderTiles(providers$CartoDB.Voyager)  %>%
-    #addProviderTiles(providers$Stamen.TonerLite)  %>%
-    # Risk layer output
-    addRasterImage(rast, color = pal, opacity = 0.65,
-                   group = layerID, layerId = layerID) %>%
-    # Risk layer raster query (use project = TRUE or get wrong values)
-    # Changed from "mousemove" to "mousemove" because value would sometimes get "stuck" (wouldn't update)
-    addImageQuery(raster(rast), project = TRUE, prefix = "", digits = 0,
-                  layerId = layerID, position = "topleft", type = "mousemove") %>%
-    # Add county lines / markers
-    addPolylines(data = state_sf, group = "States", opacity = 0.25, 
-                 color = "black", weight = 1.75) %>%
-    addPolylines(data = county_sf, group = "Counties", opacity = 0.15, 
-                 color = "black", weight = 1.25) %>%
-    # Max bounds prevents zooming out past western OR and WA
-    setMaxBounds(lng1 = -127, lat1 = 41.966, lng2 = -120.5, lat2 = 49.1664) %>%
-    # Map title
-    addControl(map_title, position = "bottomleft", className = "map-title") %>%
-    #addControl(map_title, className = "map-title") %>%
-    # Shows map coordinates as mouse is moved over map
-    addMouseCoordinates
+map <- map %>%
   
-  # TO DO: Could not figure out how to put legend outside of map!!!
-  # The legend gets in the way when viewing the app on a phone
-  ## Final map features
-  ## Add legend (only to current year map)
-  ## TO DO: figure out how to make legend background fully opaque
-  # lgd_vals <- factor(unique_vals, levels = unique(levels(rast)[[1]]$risk))
-  # map <- map %>%
-  #   addLegendFactor(title = lgd_title, 
-  #                   pal = colorFactor(pal, lgd_vals),
-  #                   values =  lgd_vals, 
-  #                   orientation = "horizontal",
-  #                   width = 10, height = 10, 
-  #                   labelStyle = 'font-size: 14px;')
+  # Basemap without labels
+  addTiles(
+    urlTemplate = paste0(
+      "https://basemaps.cartocdn.com/rastertiles/light_nolabels/",
+      "{z}/{x}/{y}{r}.png?key=", carto_key
+    ),
+    attribution = paste0(
+      "&copy; <a href='https://www.openstreetmap.org/copyright'>",
+      "OpenStreetMap</a> contributors, ",
+      "&copy; <a href='https://carto.com/attribution/'>CARTO</a>"
+    ),
+    options = tileOptions(maxZoom = 20)
+  ) %>%
+  
+  # Risk raster
+  addRasterImage(
+    rast_cat,
+    colors = pal,
+    opacity = 0.65,
+    group = layerID,
+    layerId = layerID
+  ) %>%
+  
+  # Labels on top of raster
+  addTiles(
+    urlTemplate = paste0(
+      "https://basemaps.cartocdn.com/rastertiles/light_only_labels/",
+      "{z}/{x}/{y}{r}.png?key=", carto_key
+    ),
+    options = tileOptions(
+      maxZoom = 20,
+      pane = "overlayPane"
+    )
+  ) %>%
+  
+  # State boundaries
+  addPolylines(
+    data = state_sf,
+    group = "States",
+    opacity = 0.25,
+    color = "black",
+    weight = 1.75
+  ) %>%
+  
+  # County boundaries
+  addPolylines(
+    data = county_sf,
+    group = "Counties",
+    opacity = 0.15,
+    color = "black",
+    weight = 1.25
+  ) %>%
+  
+  setMaxBounds(
+    lng1 = -127,
+    lat1 = 41.966,
+    lng2 = -120.5,
+    lat2 = 49.1664
+  ) %>%
+  
+  addControl(
+    map_title,
+    position = "bottomleft",
+    className = "map-title"
+  ) %>%
+  
+  addLegend(
+    position = "bottomright",
+    colors = pal,
+    labels = unique_vals,
+    title = lgd_title,
+    opacity = 0.65
+  )
+
+  # Raster value display - current year map only
+  if (last_year == 0) {
+    map <- map %>%
+      addImageQuery(
+        raster(rast),
+        project = TRUE,
+        prefix = "",
+        digits = 2,
+        layerId = layerID,
+        position = "topleft",
+        type = "mousemove"
+      )
+  }
   return(map)
 }
 
@@ -182,10 +247,6 @@ RiskMap <- function(input, rast, pal, map_title, lgd_title, unique_vals, last_ye
 
 # File names
 fls <- c("Cum_Inf_Risk_1day.tif", "Cum_Inf_Risk_2day.tif","Cum_Inf_Risk_3day.tif", "Cum_Inf_Risk_4day.tif")
-#outdir_current <- paste0("C:/Users/barkebri/Documents/Species/BOXB/Web_app/Rasters/ref_6-8_new/", current_year)
-#outdir_lastYr <- paste0("C:/Users/barkebri/Documents/Species/BOXB/Web_app/Rasters/ref_6-8_new/", last_year)
-outdir_current <- "~/boxb/rasters/today_maps/Misc_output"
-outdir_lastYr <-  "~/boxb/rasters/today_lastYr_maps/Misc_output"
 outdir_current <- paste0("./rasters/today_maps/Misc_output")
 outdir_lastYr <- paste0("./rasters/today_maps/Misc_output")
 #outdir_current <- "/srv/shiny-server/boxb/rasters/today_maps/Misc_output"
@@ -468,256 +529,321 @@ server <- function(input, output, session) {
   # Different maps are rendered depending on radioButton inputs
   observeEvent(input$risk, {
     
-    # Rasters for this year
-    raster_current <- switch(input$risk,
-                             "One Day" = rasts_current[[1]],
-                             "Two Day" = rasts_current[[2]],
-                             "Three Day" = rasts_current[[3]],
-                             "Four Day" = rasts_current[[4]])
-    # Rasters for last year
-    raster_lastYr <- switch(input$risk,
-                            "One Day" = rasts_lastYr[[1]],
-                            "Two Day" = rasts_lastYr[[2]],
-                            "Three Day" = rasts_lastYr[[3]],
-                            "Four Day" = rasts_lastYr[[4]])
+    #### * Import rasters ####
     
-   # FIX ME: why are extents suddenly different (1 extra col in last yr) as of 3/21/2024?
-   if (ncol(raster_lastYr) < ncol(raster_current)) {
-     raster_current <- raster_current[1:nrow(raster_current),1:507, drop = FALSE]
-     raster_current <- crop(raster_current, raster_lastYr)
-  }
-
+    # Rasters for this year
+    raster_current <- switch(
+      input$risk,
+      "One Day" = rasts_current[[1]],
+      "Two Day" = rasts_current[[2]],
+      "Three Day" = rasts_current[[3]],
+      "Four Day" = rasts_current[[4]]
+    )
+    
+    # Rasters for last year
+    raster_lastYr <- switch(
+      input$risk,
+      "One Day" = rasts_lastYr[[1]],
+      "Two Day" = rasts_lastYr[[2]],
+      "Three Day" = rasts_lastYr[[3]],
+      "Four Day" = rasts_lastYr[[4]]
+    )
+    
+    # FIX ME: why are extents suddenly different
+    if (ncol(raster_lastYr) < ncol(raster_current)) {
+      raster_current <- raster_current[1:nrow(raster_current), 1:507, drop = FALSE]
+      raster_current <- crop(raster_current, raster_lastYr)
+    }
+    
     #### * Map titles with dates ####
     
-    # Dates for current year
     title_current <- switch(
-      input$risk, 
+      input$risk,
       "One Day" = paste0(DateFormat(current_date), " \u2013", DateFormat(current_date + 1)),
-      "Two Day" =  paste0(DateFormat(current_date), " \u2013", DateFormat(current_date + 2)),
+      "Two Day" = paste0(DateFormat(current_date), " \u2013", DateFormat(current_date + 2)),
       "Three Day" = paste0(DateFormat(current_date), " \u2013", DateFormat(current_date + 3)),
-      "Four Day" = paste0(DateFormat(current_date), " \u2013", DateFormat(current_date + 4)))
+      "Four Day" = paste0(DateFormat(current_date), " \u2013", DateFormat(current_date + 4))
+    )
+    
     title_current <- tags$div(tag.map.title, HTML(title_current))
     
-    # Dates for last year
     title_lastYr <- switch(
-      input$risk, 
+      input$risk,
       "One Day" = paste0(DateFormat(lastYr_date), " \u2013", DateFormat(lastYr_date + 1)),
-      "Two Day" =  paste0(DateFormat(lastYr_date), " \u2013", DateFormat(lastYr_date + 2)),
+      "Two Day" = paste0(DateFormat(lastYr_date), " \u2013", DateFormat(lastYr_date + 2)),
       "Three Day" = paste0(DateFormat(lastYr_date), " \u2013", DateFormat(lastYr_date + 3)),
-      "Four Day" = paste0(DateFormat(lastYr_date), " \u2013", DateFormat(lastYr_date + 4)))
+      "Four Day" = paste0(DateFormat(lastYr_date), " \u2013", DateFormat(lastYr_date + 4))
+    )
+    
     title_lastYr <- tags$div(tag.map.title, HTML(title_lastYr))
     
-    #### * Factorize rasters, define legend and palettes ####
-    # Legend title
-    lgd_title <- switch(input$risk,
-                        "One Day" = "One Day Risk",
-                        "Two Day" = "Two Day Risk",
-                        "Three Day" = "Three Day Risk",
-                        "Four Day" = "Four Day Risk")
+    #### * Define categorical rasters for palette/legend only ####
     
-    # Color palettes
-    # Convert rasters to factor 
-    # Also define palettes for categorical maps
-    # Legend title is used to define the type of risk map (short-term vs. cumulative)
-    both_rasters <- c(raster_current, raster_lastYr)
-    max_rast <- FactorizeRast(app(both_rasters, max), lgd_title)
-    raster_current <- FactorizeRast(raster_current, lgd_title)
-    raster_lastYr <- FactorizeRast(raster_lastYr, lgd_title)
+    # Convert to categorical rasters only for map display
+    raster_current_cat <- FactorizeRast(raster_current)
+    raster_lastYr_cat <- FactorizeRast(raster_lastYr)
     
-    # Need to know number of unique values for color ramp
-    ncols <-  length(unique(levels(max_rast)[[1]]$risk))
+    # Combine rasters to determine all categories present
+    both_rasters_cat <- c(raster_current_cat, raster_lastYr_cat)
+    max_rast <- app(both_rasters_cat, max)
     
-    # Palette depends on risk map type
-    # Maximum of 5 colors - uses same color ramp as uspest.org
-    # Green-yellow-red
-    pal_risk <- c("#DCFFE6", "#B0FFB0","#FAFFD0", "#FFE9A6", "#FFD0E6")
+    # Number of categories present
+    vals <- sort(unique(values(max_rast)))
+    vals <- vals[!is.na(vals)]
+    ncols <- min(length(vals), 5)
     
-    # Retain needed levels only
+    # Risk palette
+    pal_risk <- c("#DCFFE6", "#B0FFB0", "#FAFFD0", "#FFE9A6","#FFD0E6")
     pal_risk <- pal_risk[1:ncols]
     
-    # Define raster attributes so that legend shows values correctly
-    unique_vals_current <- unique(levels(raster_current)[[1]]$risk)
-    unique_vals_lastYr <- unique(levels(raster_lastYr)[[1]]$risk)
+    # Risk labels
+    risk_labels <- c(
+      "0: Very Low Risk",
+      "1: Low Risk",
+      "2: 1st Infec. Susc. Vars.",
+      "3: Up to 1-6 Lesions",
+      "4: Up to 5-18 Lesions"
+    )
+    
+    # Labels for categories actually present
+    vals_current <- sort(unique(values(raster_current_cat)))
+    vals_current <- vals_current[!is.na(vals_current)]
+    
+    vals_lastYr <- sort(unique(values(raster_lastYr_cat)))
+    vals_lastYr <- vals_lastYr[!is.na(vals_lastYr)]
+    
+    unique_vals_current <- risk_labels[vals_current + 1]
+    unique_vals_lastYr <- risk_labels[vals_lastYr + 1]
+    
     pal_risk_current <- pal_risk[1:length(unique_vals_current)]
     pal_risk_lastYr <- pal_risk[1:length(unique_vals_lastYr)]
     
+    #### * Legend title ####
+    
+    lgd_title <- switch(
+      input$risk,
+      "One Day" = "One Day Risk",
+      "Two Day" = "Two Day Risk",
+      "Three Day" = "Three Day Risk",
+      "Four Day" = "Four Day Risk"
+    )
+    
     #### * Render Leaflet maps ####
-    # Produce and render maps
-    # All subsequent modifications of maps below use "LeafletProxy"
-    # (this function modifies the map that has already been rendered.
-    # Current year map
-    output$riskmap1 <- renderLeaflet({ 
-      RiskMap(input, raster_current, pal_risk_current, title_current,  
-              lgd_title, unique_vals_current, last_year = 0) %>%
-        fitBounds(lng1 = -127, lat1 = 41, lng2 = -120.5, lat2 = 49.1664)
+    
+    output$riskmap1 <- renderLeaflet({
+      
+      RiskMap(
+        raster_current, 
+        pal_risk_current, 
+        title_current,
+        lgd_title, 
+        unique_vals_current, 
+        last_year = 0
+      ) %>%
+        fitBounds(
+          lng1 = -127,
+          lat1 = 41,
+          lng2 = -120.5,
+          lat2 = 49.1664
+        )
     })
     
-    # This code block was supposed to ensure that the risk map for last year is in sync
-    # (same bounds/zoom) with current year map when map type is switched
-    # Otherwise, sometimes the map is zoomed out to entire region until the
-    # current map is touched.
-    # Doesn't work when checkbox clicked before current map loads.
-    # Last year map - overwritten once map bounds from current map is obtained
-    output$riskmap2 <- renderLeaflet({ 
-      RiskMap(input, raster_lastYr, pal_risk_lastYr, title_lastYr,  
-              lgd_title, unique_vals_lastYr, last_year = 1)  
+    output$riskmap2 <- renderLeaflet({
+      
+      RiskMap(
+        raster_lastYr, 
+        pal_risk_lastYr, 
+        title_lastYr,
+        lgd_title, 
+        unique_vals_lastYr, 
+        last_year = 1
+      )
     })
     
-    # Re-do map so bounds are same as current map
+    #### * Re-do last year map so bounds match current year map ####
+    
     observeEvent(input$riskmap1_bounds, {
       
       bounds <- input$riskmap1_bounds
+      
       if (!is.null(bounds)) {
-        # Last year map
-        output$riskmap2 <- renderLeaflet({ 
-          RiskMap(input, raster_lastYr, pal_risk_lastYr, title_lastYr,  
-                  lgd_title, unique_vals_lastYr, last_year = 1)  %>%
-            fitBounds(bounds$west, bounds$south, bounds$east, bounds$north)
+        
+        output$riskmap2 <- renderLeaflet({
+          
+          RiskMap(
+            raster_lastYr, 
+            pal_risk_lastYr, 
+            title_lastYr,
+            lgd_title, 
+            unique_vals_lastYr, 
+            last_year = 1
+          ) %>%
+            fitBounds(
+              bounds$west,
+              bounds$south,
+              bounds$east,
+              bounds$north
+            )
         })
       }
-      # Must be TRUE or map will be rendered anytime current map is touched
-    }, once = TRUE) 
+      
+    }, once = TRUE)
     
     #### * Bounds: current year map ####
-    # Observe bounds of current year map in order to:
-    # 1) Keep the bounds from resetting when risk map type changes
+    
     observeEvent(input$riskmap1_bounds, {
       
-      # Map zoom can't be entire area (level 6) or get weird behavior
-      # (non-stop loop of zooming) when select risk maps multiple times
       bounds <- input$riskmap1_bounds
       mapzoom <- input$riskmap1_zoom
       
-      # Keep bounds from resetting
       if (mapzoom > 6) {
+        
         leafletProxy("riskmap1") %>%
-          fitBounds(bounds$west, bounds$south, bounds$east, bounds$north)
+          fitBounds(
+            bounds$west,
+            bounds$south,
+            bounds$east,
+            bounds$north
+          )
       }
     })
     
     #### * Maps with location ####
-    # Below updates maps each time a new address (location) is submitted
+    
     observeEvent(input$address_submit, {
       
-      # Search message
-      # Does not appear if coordinates are valid because maps load so quickly 
-      # Maybe fix this later
-      # output$search_message <- renderText({
-      #   "Zooming to location"
-      # })
-      # delay(2000, output$search_message <- renderText(""))
-      
-      # Submitted location
       location <- input$address
-      # Geocode the location
-      coords <- tribble(~addr, location) %>%
-        geocode(addr, method = 'mapquest')
       
-      # Address submit errors
+      coords <- tribble(~addr, location) %>%
+        geocode(addr, method = "mapquest")
+      
       output$error_message <- renderText({
-        # Error: empty location submission ("")
+        
         if (coords$addr == "") {
+          
           "Please enter a location."
-          # Error: a location was entered but could not be geocoded
+          
         } else if (is.na(coords$lat & coords$addr != "")) {
+          
           "Sorry, this location could not be geocoded."
-          # Error: a location was valid but falls outside of risk forecast bounds
+          
         } else if (!is.na(coords$lat)) {
-          # Determine whether there are predictions for the location
-          xy <- data.frame(x = coords$long, y = coords$lat)
-          rast_val <- terra::extract(raster_current, xy)[1,2]
-          # Error message if rast value is NA
+          
+          xy <- data.frame(
+            x = coords$long,
+            y = coords$lat
+          )
+          
+          rast_val <- terra::extract(raster_current, xy)[1, 2]
+          
           if (is.na(rast_val)) {
             "No risk forecast for this location."
           }
         }
-        
       })
       
-      # Make message disappear (requires "shinyjs")
       delay(4000, output$error_message <- renderText(""))
       
-      # If input address doesn't return NULL coordinates
-      # Add circle markers and zoom to location
       if (!is.na(coords$lat)) {
         
-        if (coords$lat > 41.7 & coords$lat < 49.1664 & 
-            coords$long > -127 & coords$long < -120.5) {
+        if (
+          coords$lat > 41.7 &
+          coords$lat < 49.1664 &
+          coords$long > -127 &
+          coords$long < -120.5
+        ) {
           
           output$search_message <- renderText({
             "Zooming to location"
           })
+          
           delay(2000, output$search_message <- renderText(""))
           
-          # Current year map - can modify rendered map using "leafletProxy"
-          # Decided to not show marker for last year map - not necessary
           leafletProxy("riskmap1") %>%
-            removeMarker(layerId = "Value") %>% 
-            #clearMarkers() %>% # Remove circle markers from last submission
-            addRasterImage(raster_current, color = pal_risk_current, opacity = 0.65,
-                           group = "Value", layerId = "Value") %>%
-            addImageQuery(raster(raster_current), project = TRUE, prefix = "", digits = 0,
-                          layerId = "Value", position = "topleft", type = "mousemove") %>%
-            addCircleMarkers(lat = coords$lat, lng = coords$long,
-                             opacity = 0.75, color = "blue", 
-                             weight = 3, layerId = "Value", fill = FALSE) %>%
-            setView(lng = coords$long, lat = coords$lat, zoom = 11) # Zooms to area
-          
-        } 
+            removeMarker(layerId = "Address marker") %>%
+            addCircleMarkers(
+              lat = coords$lat,
+              lng = coords$long,
+              opacity = 0.75,
+              color = "blue",
+              weight = 3,
+              layerId = "Value",
+              fill = FALSE
+            ) %>%
+            setView(
+              lng = coords$long,
+              lat = coords$lat,
+              zoom = 11
+            )
+        }
       }
       
-      # If this code chunk is absent, last year map will be zoomed to full extent.
       observeEvent(input$lastYr_checkbox, {
         
-        # Make sure map is zoomed to same extent as current year map
         bounds <- input$riskmap1_bounds
         
         if (!is.na(coords$lat)) {
           
-          if (coords$lat > 41.700 & coords$lat < 49.1664 & 
-              coords$long > -127 & coords$long < -120.5) {
-            # Render map
+          if (
+            coords$lat > 41.700 &
+            coords$lat < 49.1664 &
+            coords$long > -127 &
+            coords$long < -120.5
+          ) {
+            
             output$riskmap2 <- renderLeaflet({
-              RiskMap(input, raster_lastYr, pal_risk_lastYr, title_lastYr,
-                      lgd_title, unique_vals_lastYr, last_year = 1) %>%
-                addImageQuery(raster(raster_lastYr), project = TRUE, prefix = "", digits = 0,
-                              layerId = "Value (last year)", position = "topleft", type = "mousemove") %>%
-                #setView(lng = coords$long, lat = coords$lat, zoom = 11) %>%
-                fitBounds(bounds$west, bounds$south, bounds$east, bounds$north)
+              
+              RiskMap(
+                raster_lastYr,
+                pal_risk_lastYr,
+                title_lastYr,
+                lgd_title,
+                unique_vals_lastYr,
+                last_year = 1
+              ) %>%
+                fitBounds(
+                  bounds$west,
+                  bounds$south,
+                  bounds$east,
+                  bounds$north
+                )
             })
           }
-          
         }
         
-      }, once = TRUE) # Don't need to render a new map on each click
-      
+      }, once = TRUE)
     })
     
     #### * Maps with no location ####
-    # Clears out any error messages and entries from previous submission,
-    # and zooms back out to western OR and WA if box is unchecked
+    
     observeEvent(input$address_checkbox, {
       
-      # Clear out previous submission text
       if (input$address_checkbox == 0) {
-        updateTextInput(session = session, inputId = "address", value = "")
-      }
-      
-      if (input$address_checkbox == 0) {
-        # Zoom back out to western OR and WA and clear location markers
-        leafletProxy("riskmap1")  %>%
-          fitBounds(lng1 = -127, lat1 = 41.7, lng2 = -120.5, lat2 = 49.1664) %>%
-          removeMarker(layerId = "Value")  %>% 
-          addImageQuery(raster(raster_current), project = TRUE, prefix = "", digits = 0,
-                        layerId = "Value", position = "topleft", type = "mousemove") 
+        updateTextInput(
+          session = session,
+          inputId = "address",
+          value = ""
+        )
+        
+        leafletProxy("riskmap1") %>%
+          fitBounds(
+            lng1 = -127,
+            lat1 = 41.7,
+            lng2 = -120.5,
+            lat2 = 49.1664
+          ) %>%
+          removeMarker(layerId = "Value")
+        
         leafletProxy("riskmap2") %>%
-          fitBounds(lng1 = -127, lat1 = 41.7, lng2 = -120.5, lat2 = 49.1664) %>%
-          removeMarker(layerId = "Value") %>% 
-          addImageQuery(raster(raster_lastYr), project = TRUE, prefix = "", digits = 0,
-                        layerId = "Value (last year)", position = "topleft", type = "mousemove") 
+          fitBounds(
+            lng1 = -127,
+            lat1 = 41.7,
+            lng2 = -120.5,
+            lat2 = 49.1664
+          ) %>%
+          removeMarker(layerId = "Value")
       }
     })
-    
   })
   
   #### * Sync last year map ####
